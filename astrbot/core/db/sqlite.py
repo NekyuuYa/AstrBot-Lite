@@ -60,6 +60,8 @@ class SQLiteDatabase(BaseDatabase):
             await self._ensure_persona_folder_columns(conn)
             await self._ensure_persona_skills_column(conn)
             await self._ensure_persona_custom_error_message_column(conn)
+            # 确保 provider_stats 表有 cost_usd 和 prompt_metadata 列（前向兼容）
+            await self._ensure_provider_stats_columns(conn)
             await conn.commit()
 
     async def _ensure_persona_folder_columns(self, conn) -> None:
@@ -102,6 +104,20 @@ class SQLiteDatabase(BaseDatabase):
         if "custom_error_message" not in columns:
             await conn.execute(
                 text("ALTER TABLE personas ADD COLUMN custom_error_message TEXT")
+            )
+
+    async def _ensure_provider_stats_columns(self, conn) -> None:
+        """确保 provider_stats 表有 cost_usd 和 prompt_metadata 列（前向兼容）。"""
+        result = await conn.execute(text("PRAGMA table_info(provider_stats)"))
+        columns = {row[1] for row in result.fetchall()}
+
+        if "cost_usd" not in columns:
+            await conn.execute(
+                text("ALTER TABLE provider_stats ADD COLUMN cost_usd REAL DEFAULT 0.0")
+            )
+        if "prompt_metadata" not in columns:
+            await conn.execute(
+                text("ALTER TABLE provider_stats ADD COLUMN prompt_metadata TEXT")
             )
 
     # ====
@@ -192,6 +208,8 @@ class SQLiteDatabase(BaseDatabase):
         start_time = float(stats.get("start_time", 0.0) or 0.0)
         end_time = float(stats.get("end_time", 0.0) or 0.0)
         time_to_first_token = float(stats.get("time_to_first_token", 0.0) or 0.0)
+        cost_usd = float(stats.get("cost_usd", 0.0) or 0.0)
+        prompt_metadata: str | None = stats.get("prompt_metadata", None)
 
         async with self.get_db() as session:
             session: AsyncSession
@@ -209,11 +227,103 @@ class SQLiteDatabase(BaseDatabase):
                     start_time=start_time,
                     end_time=end_time,
                     time_to_first_token=time_to_first_token,
+                    cost_usd=cost_usd,
+                    prompt_metadata=prompt_metadata,
                 )
                 session.add(record)
                 await session.flush()
                 await session.refresh(record)
                 return record
+
+    async def get_provider_stats_summary(self, days: int = 7) -> list[dict]:
+        """Return per-model aggregated stats for the last N days.
+
+        Returns a list of dicts with keys:
+            provider_model, call_count, total_input_tokens, total_cached_tokens,
+            total_output_tokens, total_tokens, total_cost_usd, avg_latency_ms
+        """
+        cutoff = datetime.utcnow().timestamp() - days * 86400
+        async with self.get_db() as session:
+            result = await session.execute(
+                text("""
+                    SELECT
+                        provider_model,
+                        COUNT(*) AS call_count,
+                        SUM(token_input_other) AS total_input_tokens,
+                        SUM(token_input_cached) AS total_cached_tokens,
+                        SUM(token_output) AS total_output_tokens,
+                        SUM(token_input_other + token_input_cached + token_output) AS total_tokens,
+                        SUM(cost_usd) AS total_cost_usd,
+                        AVG((end_time - start_time) * 1000) AS avg_latency_ms
+                    FROM provider_stats
+                    WHERE start_time >= :cutoff
+                      AND status = 'completed'
+                    GROUP BY provider_model
+                    ORDER BY total_tokens DESC
+                """),
+                {"cutoff": cutoff},
+            )
+            rows = result.fetchall()
+            return [
+                {
+                    "provider_model": row[0],
+                    "call_count": int(row[1] or 0),
+                    "total_input_tokens": int(row[2] or 0),
+                    "total_cached_tokens": int(row[3] or 0),
+                    "total_output_tokens": int(row[4] or 0),
+                    "total_tokens": int(row[5] or 0),
+                    "total_cost_usd": float(row[6] or 0.0),
+                    "avg_latency_ms": float(row[7] or 0.0),
+                }
+                for row in rows
+            ]
+
+    async def get_recent_provider_stats(
+        self, limit: int = 50, offset: int = 0
+    ) -> tuple[list[dict], int]:
+        """Return paginated recent provider stat records.
+
+        Returns (records, total_count).
+        """
+        async with self.get_db() as session:
+            count_result = await session.execute(
+                text("SELECT COUNT(*) FROM provider_stats")
+            )
+            total = int(count_result.scalar() or 0)
+
+            result = await session.execute(
+                text("""
+                    SELECT
+                        id, provider_id, provider_model, status,
+                        token_input_other, token_input_cached, token_output,
+                        cost_usd, start_time, end_time, time_to_first_token,
+                        conversation_id, prompt_metadata, created_at
+                    FROM provider_stats
+                    ORDER BY id DESC
+                    LIMIT :limit OFFSET :offset
+                """),
+                {"limit": limit, "offset": offset},
+            )
+            rows = result.fetchall()
+            records = [
+                {
+                    "id": row[0],
+                    "provider_id": row[1],
+                    "provider_model": row[2],
+                    "status": row[3],
+                    "token_input": int((row[4] or 0) + (row[5] or 0)),
+                    "token_input_cached": int(row[5] or 0),
+                    "token_output": int(row[6] or 0),
+                    "cost_usd": float(row[7] or 0.0),
+                    "latency_ms": float(((row[9] or 0) - (row[8] or 0)) * 1000),
+                    "time_to_first_token_ms": float((row[10] or 0) * 1000),
+                    "conversation_id": row[11],
+                    "prompt_metadata": row[12],
+                    "created_at": str(row[13]) if row[13] else None,
+                }
+                for row in rows
+            ]
+            return records, total
 
     # ====
     # Conversation Management

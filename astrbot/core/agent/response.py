@@ -21,6 +21,7 @@ class AgentStats:
     start_time: float = 0.0
     end_time: float = 0.0
     time_to_first_token: float = 0.0
+    cost_usd: float = 0.0
 
     @property
     def duration(self) -> float:
@@ -32,4 +33,5 @@ class AgentStats:
             "start_time": self.start_time,
             "end_time": self.end_time,
             "time_to_first_token": self.time_to_first_token,
+            "cost_usd": self.cost_usd,
         }

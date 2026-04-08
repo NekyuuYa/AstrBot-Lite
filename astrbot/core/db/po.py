@@ -60,6 +60,8 @@ class ProviderStat(TimestampMixin, SQLModel, table=True):
     start_time: float = Field(default=0.0, nullable=False)
     end_time: float = Field(default=0.0, nullable=False)
     time_to_first_token: float = Field(default=0.0, nullable=False)
+    cost_usd: float = Field(default=0.0, nullable=False)
+    prompt_metadata: str | None = Field(default=None, nullable=True)
 
 
 class ConversationV2(TimestampMixin, SQLModel, table=True):

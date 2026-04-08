@@ -122,6 +122,18 @@ class BaseDatabase(abc.ABC):
         ...
 
     @abc.abstractmethod
+    async def get_provider_stats_summary(self, days: int = 7) -> list[dict]:
+        """Return per-model aggregated stats for the last N days."""
+        ...
+
+    @abc.abstractmethod
+    async def get_recent_provider_stats(
+        self, limit: int = 50, offset: int = 0
+    ) -> tuple[list[dict], int]:
+        """Return (records, total_count) for paginated recent provider stat records."""
+        ...
+
+    @abc.abstractmethod
     async def get_conversations(
         self,
         user_id: str | None = None,

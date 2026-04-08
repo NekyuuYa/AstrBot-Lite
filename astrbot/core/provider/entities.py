@@ -370,6 +370,8 @@ class LLMResponse:
     """The ID of the response. For chunked responses, it's the ID of the chunk; for non-chunked responses, it's the ID of the response."""
     usage: TokenUsage | None = None
     """The usage of the response. For chunked responses, it's the usage of the chunk; for non-chunked responses, it's the usage of the response."""
+    cost_usd: float | None = None
+    """Estimated cost of this LLM call in USD. Only populated by the LiteLLM adapter."""
 
     def __init__(
         self,
@@ -389,6 +391,7 @@ class LLMResponse:
         is_chunk: bool = False,
         id: str | None = None,
         usage: TokenUsage | None = None,
+        cost_usd: float | None = None,
     ) -> None:
         """初始化 LLMResponse
 
@@ -428,6 +431,8 @@ class LLMResponse:
             self.id = id
         if usage is not None:
             self.usage = usage
+        if cost_usd is not None:
+            self.cost_usd = cost_usd
 
     @property
     def completion_text(self):
