@@ -1372,7 +1372,7 @@ CONFIG_METADATA_2 = {
                         "id": "my-router",
                         "provider": "model_router",
                         "type": "model_router",
-                        "provider_type": "chat_completion",
+                        "provider_type": "model_router",
                         "enable": True,
                         "model_list": [],
                         "routing_strategy": "simple-shuffle",

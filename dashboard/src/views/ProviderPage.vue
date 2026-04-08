@@ -77,8 +77,8 @@
                     </div>
                     
                     <div class="object-config">
-                      <!-- Provider Selection Row -->
-                      <v-row class="config-row">
+                      <!-- Provider Selection Row (Hidden for Routers) -->
+                      <v-row class="config-row" v-if="selectedProviderType !== 'routers'">
                         <v-col cols="12" sm="6" class="property-info">
                           <v-list-item density="compact">
                             <v-list-item-title class="property-name">
@@ -126,7 +126,7 @@
                         </v-col>
                       </v-row>
 
-                      <v-divider class="config-divider"></v-divider>
+                      <v-divider class="config-divider" v-if="selectedProviderType !== 'routers'"></v-divider>
 
                       <!-- ID Input Row -->
                       <v-row class="config-row">
