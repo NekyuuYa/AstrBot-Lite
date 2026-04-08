@@ -569,6 +569,8 @@ class ToolLoopAgentRunner(BaseAgentRunner[TContext]):
                 self.stats.token_usage += llm_response.usage
                 if self.req.conversation:
                     self.req.conversation.token_usage = llm_response.usage.total
+            if not llm_response.is_chunk and llm_response.cost_usd is not None:
+                self.stats.cost_usd += llm_response.cost_usd
             break  # got final response
 
         if not llm_resp_result:

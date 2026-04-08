@@ -6,6 +6,23 @@ from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
 from astrbot.core import astrbot_config, logger, sp
+
+# Legacy chat_completion adapter types that are redirected to ProviderLiteLLM.
+# The original type is preserved in config["_litellm_original_type"] so that
+# ProviderLiteLLM can infer the correct model prefix.
+_LITELLM_REDIRECT_TYPES: frozenset[str] = frozenset(
+    {
+        "openai_chat_completion",
+        "googlegenai_chat_completion",
+        "anthropic_chat_completion",
+        "groq_chat_completion",
+        "xai_chat_completion",
+        "openrouter_chat_completion",
+        "zhipu_chat_completion",
+        "aihubmix_chat_completion",
+        "kimi_code_chat_completion",
+    }
+)
 from astrbot.core.astrbot_config_mgr import AstrBotConfigManager
 from astrbot.core.db import BaseDatabase
 from astrbot.core.utils.error_redaction import safe_error
@@ -363,6 +380,10 @@ class ProviderManager:
                 )
             case "longcat_chat_completion":
                 from .sources.longcat_source import ProviderLongCat as ProviderLongCat
+            case "litellm_chat_completion":
+                from .sources.litellm_source import (
+                    ProviderLiteLLM as ProviderLiteLLM,
+                )
             case "zhipu_chat_completion":
                 from .sources.zhipu_source import ProviderZhipu as ProviderZhipu
             case "groq_chat_completion":
@@ -505,6 +526,19 @@ class ProviderManager:
                 pc = merged_config
         return pc
 
+    @staticmethod
+    def _redirect_to_litellm(provider_config: dict) -> dict:
+        """Redirect a legacy chat_completion config to the unified LiteLLM adapter.
+
+        Preserves the original type in ``_litellm_original_type`` so that
+        ``ProviderLiteLLM.__init__`` can use it to build the correct
+        ``<provider>/<model>`` string (e.g. "gemini/gemini-2.5-flash").
+        """
+        cfg = dict(provider_config)
+        cfg["_litellm_original_type"] = cfg["type"]
+        cfg["type"] = "litellm_chat_completion"
+        return cfg
+
     def _resolve_env_key_list(self, provider_config: dict) -> dict:
         keys = provider_config.get("key", [])
         if not isinstance(keys, list):
@@ -548,6 +582,10 @@ class ProviderManager:
         logger.info(
             f"载入 {provider_config['type']}({provider_config['id']}) 服务提供商 ...",
         )
+
+        # Redirect legacy chat_completion types to the unified LiteLLM adapter
+        if provider_config["type"] in _LITELLM_REDIRECT_TYPES:
+            provider_config = self._redirect_to_litellm(provider_config)
 
         # 动态导入
         try:

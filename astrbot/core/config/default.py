@@ -97,6 +97,16 @@ DEFAULT_CONFIG = {
     },
     "provider_sources": [],  # provider sources
     "provider": [],  # models from provider_sources
+    "litellm_settings": {
+        "mode": "internal",  # "internal" | "proxy"
+        "proxy_base_url": "",
+        "proxy_api_key": "",
+        "observer": {
+            "enable": True,
+            "estimate_cost": True,
+            "record_prompt_structure": True,
+        },
+    },
     "provider_settings": {
         "enable": True,
         "default_provider_id": "",
@@ -1330,6 +1340,30 @@ CONFIG_METADATA_2 = {
                         "api_version": "2024-05-01-preview",
                         "key": [],
                         "api_base": "",
+                        "timeout": 120,
+                        "proxy": "",
+                        "custom_headers": {},
+                    },
+                    "DashScope": {
+                        "id": "dashscope",
+                        "provider": "dashscope",
+                        "type": "openai_chat_completion",
+                        "provider_type": "chat_completion",
+                        "enable": True,
+                        "key": [],
+                        "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                        "timeout": 120,
+                        "proxy": "",
+                        "custom_headers": {},
+                    },
+                    "VolcEngine": {
+                        "id": "volcengine",
+                        "provider": "volcengine",
+                        "type": "openai_chat_completion",
+                        "provider_type": "chat_completion",
+                        "enable": True,
+                        "key": [],
+                        "api_base": "https://ark.cn-beijing.volces.com/api/v3",
                         "timeout": 120,
                         "proxy": "",
                         "custom_headers": {},

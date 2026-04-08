@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import json
 from collections.abc import AsyncGenerator
 from dataclasses import replace
 
@@ -504,13 +505,23 @@ async def _record_internal_agent_stats(
         else:
             status = "completed"
 
+        # Build stats dict with prompt metadata
+        stats_dict = stats.to_dict()
+        if req is not None:
+            prompt_meta = {
+                "system_prompt_chars": len(req.system_prompt or ""),
+                "context_turns": len(req.contexts or []),
+                "user_message_chars": len(req.prompt or ""),
+            }
+            stats_dict["prompt_metadata"] = json.dumps(prompt_meta)
+
         await db_helper.insert_provider_stat(
             umo=event.unified_msg_origin,
             conversation_id=conversation_id,
             provider_id=provider_config.get("id", "") or provider.meta().id,
             provider_model=provider.get_model(),
             status=status,
-            stats=stats.to_dict(),
+            stats=stats_dict,
             agent_type="internal",
         )
     except Exception as e:
