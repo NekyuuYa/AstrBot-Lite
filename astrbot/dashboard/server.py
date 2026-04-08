@@ -36,6 +36,10 @@ from .routes.t2i import T2iRoute
 # Static assets shipped inside the wheel (built during `hatch build`).
 _BUNDLED_DIST = Path(__file__).parent / "dist"
 
+# Local development build: <project_root>/dashboard/dist/
+# Exists when the developer runs `pnpm build` inside the dashboard/ directory.
+_LOCAL_DEV_DIST = Path(__file__).parent.parent.parent / "dashboard" / "dist"
+
 
 class _AddrWithPort(Protocol):
     port: int
@@ -71,10 +75,14 @@ class AstrBotDashboard:
 
         # Path priority:
         # 1. Explicit webui_dir argument
-        # 2. data/dist/ (user-installed / manually updated dashboard)
-        # 3. astrbot/dashboard/dist/ (bundled with the wheel)
+        # 2. Local development build: <project_root>/dashboard/dist/ (pnpm build)
+        # 3. data/dist/ (user-installed / manually updated dashboard)
+        # 4. astrbot/dashboard/dist/ (bundled with the wheel)
         if webui_dir and os.path.exists(webui_dir):
             self.data_path = os.path.abspath(webui_dir)
+        elif _LOCAL_DEV_DIST.exists() and any(_LOCAL_DEV_DIST.iterdir()):
+            self.data_path = str(_LOCAL_DEV_DIST)
+            logger.info("Using local development dashboard build: %s", self.data_path)
         else:
             user_dist = os.path.join(get_astrbot_data_path(), "dist")
             if os.path.exists(user_dist):

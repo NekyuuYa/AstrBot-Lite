@@ -74,6 +74,14 @@ async def check_dashboard_files(webui_dir: str | None = None):
             return webui_dir
         logger.warning(f"指定的 WebUI 目录 {webui_dir} 不存在，将使用默认逻辑。")
 
+    # Use local development build if present (dashboard/dist/ in the project root).
+    # This takes priority over remote downloads so local Vue/TS changes are served
+    # without needing to pull a pre-built release.
+    local_build = Path(__file__).parent / "dashboard" / "dist"
+    if local_build.exists() and any(local_build.iterdir()):
+        logger.info(f"Using local dashboard build: {local_build}")
+        return str(local_build)
+
     data_dist_path = os.path.join(get_astrbot_data_path(), "dist")
     if os.path.exists(data_dist_path):
         v = await get_dashboard_version()

@@ -48,6 +48,8 @@ class StatRoute(Route):
             "/stat/first-notice": ("GET", self.get_first_notice),
             "/stat/storage": ("GET", self.get_storage_status),
             "/stat/storage/cleanup": ("POST", self.cleanup_storage),
+            "/stat/provider/summary": ("GET", self.get_provider_stats_summary),
+            "/stat/provider/recent": ("GET", self.get_provider_stats_recent),
         }
         self.db_helper = db_helper
         self.register_routes()
@@ -551,6 +553,44 @@ class StatRoute(Route):
                     return Response().ok({"content": content}).__dict__
 
             return Response().ok({"content": None}).__dict__
+        except Exception as e:
+            logger.error(traceback.format_exc())
+            return Response().error(f"Error: {e!s}").__dict__
+
+    async def get_provider_stats_summary(self):
+        """GET /api/stat/provider/summary?days=7
+
+        Returns per-model aggregated stats: call count, token totals, cost, avg latency.
+        """
+        try:
+            try:
+                days = int(request.args.get("days", 7))
+            except (TypeError, ValueError):
+                days = 7
+            days = max(1, min(days, 90))
+            models = await self.db_helper.get_provider_stats_summary(days)
+            return Response().ok({"days": days, "models": models}).__dict__
+        except Exception as e:
+            logger.error(traceback.format_exc())
+            return Response().error(f"Error: {e!s}").__dict__
+
+    async def get_provider_stats_recent(self):
+        """GET /api/stat/provider/recent?limit=50&offset=0
+
+        Returns paginated recent provider stat records.
+        """
+        try:
+            try:
+                limit = int(request.args.get("limit", 50))
+                offset = int(request.args.get("offset", 0))
+            except (TypeError, ValueError):
+                limit, offset = 50, 0
+            limit = max(1, min(limit, 200))
+            offset = max(0, offset)
+            records, total = await self.db_helper.get_recent_provider_stats(
+                limit, offset
+            )
+            return Response().ok({"records": records, "total": total}).__dict__
         except Exception as e:
             logger.error(traceback.format_exc())
             return Response().error(f"Error: {e!s}").__dict__
