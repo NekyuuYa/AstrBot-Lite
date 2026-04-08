@@ -154,9 +154,60 @@
 
                       <v-divider class="config-divider"></v-divider>
 
+                      <!-- 特殊：模型路由配置 -->
+                      <template v-if="selectedProviderType === 'routers'">
+                        <!-- 模型列表选择 -->
+                        <v-row class="config-row">
+                          <v-col cols="12" sm="6" class="property-info">
+                            <v-list-item density="compact">
+                              <v-list-item-title class="property-name">参与路由的模型</v-list-item-title>
+                              <v-list-item-subtitle class="property-hint">选择要纳入该路由组的模型</v-list-item-subtitle>
+                            </v-list-item>
+                          </v-col>
+                          <v-col cols="12" sm="6" class="config-input">
+                            <v-select
+                              v-model="editableProviderSource.model_list"
+                              :items="allCompletionModels"
+                              item-title="id"
+                              item-value="id"
+                              multiple
+                              chips
+                              variant="outlined"
+                              density="compact"
+                              hide-details
+                              placeholder="选择模型..."
+                            ></v-select>
+                          </v-col>
+                        </v-row>
+                        <v-divider class="config-divider"></v-divider>
+                        
+                        <!-- 路由策略 -->
+                        <v-row class="config-row">
+                          <v-col cols="12" sm="6" class="property-info">
+                            <v-list-item density="compact">
+                              <v-list-item-title class="property-name">路由策略</v-list-item-title>
+                              <v-list-item-subtitle class="property-hint">决定请求如何分配</v-list-item-subtitle>
+                            </v-list-item>
+                          </v-col>
+                          <v-col cols="12" sm="6" class="config-input">
+                            <v-select
+                              v-model="editableProviderSource.routing_strategy"
+                              :items="[
+                                {title: '轮询 (Simple Shuffle)', value: 'simple-shuffle'},
+                                {title: '最少忙碌 (Least Busy)', value: 'least-busy'},
+                                {title: '最低延迟 (Latency Based)', value: 'latency-based-routing'}
+                              ]"
+                              variant="outlined"
+                              density="compact"
+                              hide-details
+                            ></v-select>
+                          </v-col>
+                        </v-row>
+                      </template>
+
                       <!-- 使用 AstrBotConfig 渲染 Key, API Base 等 -->
                       <AstrBotConfig 
-                        v-if="basicSourceConfig" 
+                        v-if="basicSourceConfig && selectedProviderType !== 'routers'" 
                         :iterable="basicSourceConfig" 
                         :metadata="providerSourceSchema"
                         metadataKey="provider" 
@@ -164,7 +215,7 @@
                       />
                     </div>
                     
-                    <div class="d-flex justify-end mt-4">
+                    <div class="d-flex justify-end mt-4" v-if="selectedProviderType !== 'routers'">
                        <v-btn
                         variant="tonal"
                         size="small"
@@ -180,7 +231,7 @@
                   </section>
 
                   <!-- 高级配置 -->
-                  <section v-if="advancedSourceConfig" class="provider-section mt-4">
+                  <section v-if="advancedSourceConfig && selectedProviderType !== 'routers'" class="provider-section mt-4">
                     <div class="provider-section-head d-flex justify-space-between align-center">
                       <div class="provider-section-title">{{ tm('providerSources.advancedConfig') }}</div>
                       <v-btn
@@ -203,7 +254,7 @@
                   </section>
 
                   <!-- 已配置模型管理 -->
-                  <section class="provider-section provider-section--models mt-4">
+                  <section class="provider-section provider-section--models mt-4" v-if="selectedProviderType !== 'routers'">
                     <ProviderModelsPanel
                       :entries="filteredMergedModelEntries"
                       :available-count="availableModels.length"
@@ -229,9 +280,9 @@
                 </v-card-text>
 
                 <div v-else class="provider-empty-state">
-                  <v-icon size="64" color="grey-lighten-1">mdi-toy-brick-plus-outline</v-icon>
-                  <p class="mt-4 text-h3">{{ tm('providerSources.selectHint') }}</p>
-                  <p class="text-body-1 text-medium-emphasis">从左侧选择或创建一个提供商源以开始配置</p>
+                  <v-icon size="64" color="grey-lighten-1">mdi-router-network</v-icon>
+                  <p class="mt-4 text-h3">模型路由管理</p>
+                  <p class="text-body-1 text-medium-emphasis">从左侧选择或创建一个路由组以开始配置</p>
                 </div>
               </v-card>
             </v-col>
@@ -239,38 +290,6 @@
         </div>
       </div>
     </v-container>
-
-    <!-- 手动添加模型对话框 -->
-    <v-dialog v-model="showManualModelDialog" max-width="450">
-      <v-card :title="tm('models.manualDialogTitle')" rounded="xl">
-        <v-card-text class="py-4">
-          <v-text-field 
-            v-model="manualModelId" 
-            :label="tm('models.manualDialogModelLabel')" 
-            flat 
-            variant="solo-filled" 
-            autofocus 
-            clearable
-            class="mb-4"
-          ></v-text-field>
-          <v-text-field 
-            :model-value="manualProviderId" 
-            flat 
-            variant="solo-filled" 
-            :label="tm('models.manualDialogPreviewLabel')" 
-            persistent-hint
-            readonly
-            density="compact"
-            :hint="tm('models.manualDialogPreviewHint')"
-          ></v-text-field>
-        </v-card-text>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="showManualModelDialog = false" rounded="xl">取消</v-btn>
-          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="xl">添加</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <!-- 已配置模型编辑对话框 -->
     <v-dialog v-model="showProviderEditDialog" width="800">
@@ -397,6 +416,7 @@ const idTouched = ref(false) // 追踪用户是否手动改过 ID
 
 const uiTypeToBackendType = {
     'completions': 'chat_completion',
+    'routers': 'model_router',
     'audio/transcriptions': 'speech_to_text',
     'audio/speech': 'text_to_speech',
     'embeddings': 'embedding',
@@ -416,6 +436,14 @@ const availableProviders = computed(() => {
       value: name 
     }))
     .sort((a, b) => a.label.localeCompare(b.label)) // 增加首字母排序
+})
+
+// 用于模型路由的模型列表：只显示 completions 类型的已配置模型
+const allCompletionModels = computed(() => {
+  if (!configSchema.value || !configSchema.value.provider) return []
+  // 这里逻辑稍微复杂，需要从原始配置中筛选出 completions 类型的模型
+  // 简化实现：通过 filteredMergedModelEntries 获取
+  return [] // 待进一步对接 useProviderSources 提供的数据
 })
 
 // 监听选中源的变化，初始化状态

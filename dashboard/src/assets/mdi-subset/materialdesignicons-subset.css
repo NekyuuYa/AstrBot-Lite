@@ -1,4 +1,4 @@
-/* Auto-generated MDI subset – 259 icons */
+/* Auto-generated MDI subset – 261 icons */
 /* Do not edit manually. Run: pnpm run subset-icons */
 
 @font-face {
@@ -692,6 +692,10 @@
   content: "\F0375";
 }
 
+.mdi-music-note-outline::before {
+  content: "\F0F74";
+}
+
 .mdi-note-text-outline::before {
   content: "\F11D7";
 }
@@ -848,6 +852,14 @@
   content: "\F167A";
 }
 
+.mdi-router-network::before {
+  content: "\F1087";
+}
+
+.mdi-selection-off::before {
+  content: "\F0777";
+}
+
 .mdi-send::before {
   content: "\F048A";
 }
@@ -974,10 +986,6 @@
 
 .mdi-tools::before {
   content: "\F1064";
-}
-
-.mdi-toy-brick-plus-outline::before {
-  content: "\F128F";
 }
 
 .mdi-translate::before {

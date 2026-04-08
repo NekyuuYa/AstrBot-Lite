@@ -384,7 +384,11 @@ class ProviderManager:
                 from .sources.litellm_source import (
                     ProviderLiteLLM as ProviderLiteLLM,
                 )
-            case "zhipu_chat_completion":
+            case "model_router":
+                from .sources.router_source import (
+                    ProviderRouter as ProviderRouter,
+                )
+            case "longcat_chat_completion":
                 from .sources.zhipu_source import ProviderZhipu as ProviderZhipu
             case "groq_chat_completion":
                 from .sources.groq_source import ProviderGroq as ProviderGroq
