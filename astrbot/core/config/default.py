@@ -1368,6 +1368,15 @@ CONFIG_METADATA_2 = {
                         "proxy": "",
                         "custom_headers": {},
                     },
+                    "Model Router": {
+                        "id": "my-router",
+                        "provider": "model_router",
+                        "type": "model_router",
+                        "provider_type": "chat_completion",
+                        "enable": True,
+                        "model_list": [],
+                        "routing_strategy": "simple-shuffle",
+                    },
                     "Ollama": {
                         "id": "ollama",
                         "provider": "ollama",

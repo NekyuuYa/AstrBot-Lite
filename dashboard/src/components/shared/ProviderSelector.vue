@@ -11,7 +11,7 @@
         {{ modelValue }}
       </template>
     </span>
-    <v-btn size="small" color="primary" variant="tonal" @click="openDialog" rounded="xl">
+    <v-btn size="small" color="primary" variant="tonal" @click="openDialog" rounded="lg">
       {{ buttonText || tm('providerSelector.buttonText') }}
     </v-btn>
   </div>
@@ -32,7 +32,7 @@
 
   <!-- Provider Selection Dialog -->
   <v-dialog v-model="dialog" max-width="600px">
-    <v-card rounded="xl">
+    <v-card rounded="lg">
       <v-card-title
         class="text-h3 py-4 d-flex align-center justify-space-between gap-4 flex-wrap px-6"
         style="font-weight: normal;"
@@ -43,7 +43,7 @@
           color="primary"
           variant="tonal"
           prepend-icon="mdi-plus"
-          rounded="xl"
+          rounded="lg"
           @click="openProviderDrawer"
         >
           {{ tm('providerSelector.createProvider') }}
@@ -62,7 +62,7 @@
             <v-list-item
               v-for="(providerId, index) in selectedProviders"
               :key="`selected-${providerId}-${index}`"
-              rounded="lg"
+              rounded="md"
               class="mb-1 bg-surface shadow-sm"
             >
               <v-list-item-title class="font-weight-medium">{{ providerId }}</v-list-item-title>
@@ -105,7 +105,7 @@
             value=""
             @click="selectProvider({ id: '' })"
             :active="selectedProvider === ''"
-            rounded="lg"
+            rounded="md"
             class="ma-1 mb-2">
             <template v-slot:prepend>
               <v-icon color="grey">mdi-selection-off</v-icon>
@@ -123,7 +123,7 @@
             :value="group.name"
           >
             <template v-slot:activator="{ props }">
-              <v-list-item v-bind="props" rounded="lg" class="ma-1">
+              <v-list-item v-bind="props" rounded="md" class="ma-1">
                 <template v-slot:prepend>
                   <v-avatar size="24" rounded="0" class="me-2">
                     <v-img :src="getProviderIcon(group.providerId)" cover></v-img>
@@ -146,7 +146,7 @@
               :value="provider.id"
               @click="selectProvider(provider)"
               :active="isProviderSelected(provider.id)"
-              rounded="lg"
+              rounded="md"
               class="ms-8 me-1 my-1"
             >
               <v-list-item-title>{{ provider.id }}</v-list-item-title>
@@ -174,11 +174,11 @@
       
       <v-card-actions class="pa-4 px-6">
         <v-spacer></v-spacer>
-        <v-btn variant="text" rounded="xl" @click="cancelSelection">{{ tm('providerSelector.cancelSelection') }}</v-btn>
+        <v-btn variant="text" rounded="lg" @click="cancelSelection">{{ tm('providerSelector.cancelSelection') }}</v-btn>
         <v-btn 
           color="primary" 
           variant="flat"
-          rounded="xl"
+          rounded="lg"
           class="px-6"
           @click="confirmSelection">
           {{ tm('providerSelector.confirmSelection') }}
@@ -211,7 +211,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 import ProviderPage from '@/views/ProviderPage.vue'
@@ -447,7 +447,7 @@ function closeProviderDrawer() {
 
 .selected-order-list {
   background: rgba(var(--v-theme-primary), 0.03);
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .shadow-sm {

@@ -291,6 +291,38 @@
       </div>
     </v-container>
 
+    <!-- 手动添加模型对话框 -->
+    <v-dialog v-model="showManualModelDialog" max-width="450">
+      <v-card :title="tm('models.manualDialogTitle')" rounded="lg">
+        <v-card-text class="py-4">
+          <v-text-field 
+            v-model="manualModelId" 
+            :label="tm('models.manualDialogModelLabel')" 
+            flat 
+            variant="solo-filled" 
+            autofocus 
+            clearable
+            class="mb-4"
+          ></v-text-field>
+          <v-text-field 
+            :model-value="manualProviderId" 
+            flat 
+            variant="solo-filled" 
+            :label="tm('models.manualDialogPreviewLabel')" 
+            persistent-hint
+            readonly
+            density="compact"
+            :hint="tm('models.manualDialogPreviewHint')"
+          ></v-text-field>
+        </v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="showManualModelDialog = false" rounded="xl">取消</v-btn>
+          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="xl">添加</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- 已配置模型编辑对话框 -->
     <v-dialog v-model="showProviderEditDialog" width="800">
       <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')" rounded="xl">
@@ -328,7 +360,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue'
@@ -439,11 +471,21 @@ const availableProviders = computed(() => {
 })
 
 // 用于模型路由的模型列表：只显示 completions 类型的已配置模型
+const providerList = ref([])
 const allCompletionModels = computed(() => {
-  if (!configSchema.value || !configSchema.value.provider) return []
-  // 这里逻辑稍微复杂，需要从原始配置中筛选出 completions 类型的模型
-  // 简化实现：通过 filteredMergedModelEntries 获取
-  return [] // 待进一步对接 useProviderSources 提供的数据
+  if (!providerList.value) return []
+  return providerList.value.filter(p => p.provider_type === 'chat_completion')
+})
+
+onMounted(async () => {
+    try {
+        const res = await axios.get('/api/config/provider/list', { params: { provider_type: 'chat_completion' }})
+        if (res.data.status === 'ok') {
+            providerList.value = res.data.data || []
+        }
+    } catch (err) {
+        console.error("Failed to fetch provider list", err)
+    }
 })
 
 // 监听选中源的变化，初始化状态
