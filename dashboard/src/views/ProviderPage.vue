@@ -5,22 +5,16 @@
       <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-4">
         <div>
           <h1 class="text-h1 font-weight-bold mb-2">
-            <v-icon class="me-2">mdi-creation</v-icon>{{ tm('title') }}
+            <v-icon color="black" class="me-2">mdi-creation</v-icon>{{ tm('title') }}
           </h1>
           <p class="text-subtitle-1 text-medium-emphasis mb-4">
             {{ tm('subtitle') }}
           </p>
         </div>
-        <div v-if="selectedProviderType !== 'chat_completion'">
-          <v-btn color="primary" prepend-icon="mdi-plus" variant="tonal" @click="showAddProviderDialog = true"
-            rounded="xl" size="x-large">
-            {{ tm('providers.addProvider') }}
-          </v-btn>
-        </div>
       </v-row>
 
       <div>
-        <!-- Provider Type 标签页 -->
+        <!-- Model Hub Type 标签页 -->
         <v-tabs v-model="selectedProviderType" bg-color="transparent" class="mb-4">
           <v-tab v-for="type in providerTypes" :key="type.value" :value="type.value" class="font-weight-medium px-3">
             <v-icon start>{{ type.icon }}</v-icon>
@@ -28,9 +22,10 @@
           </v-tab>
         </v-tabs>
 
-        <!-- Chat Completion: 左侧列表 + 右侧上下卡片布局 -->
-        <div v-if="selectedProviderType === 'chat_completion'" class="provider-workbench">
+        <!-- 统一布局: 左侧列表 + 右侧配置 -->
+        <div class="provider-workbench">
           <v-row class="provider-workbench__shell">
+            <!-- 左侧提供商源列表 -->
             <v-col cols="12" md="4" lg="3" class="provider-workbench__sources">
               <ProviderSourcesPanel
                 :displayed-provider-sources="displayedProviderSources"
@@ -38,21 +33,24 @@
                 :available-source-types="availableSourceTypes"
                 :tm="tm"
                 :resolve-source-icon="resolveSourceIcon"
-                :get-source-display-name="getSourceDisplayName"
+                :getSourceDisplayName="getSourceDisplayName"
                 @add-provider-source="addProviderSource"
                 @select-provider-source="selectProviderSource"
                 @delete-provider-source="deleteProviderSource"
               />
             </v-col>
 
+            <!-- 右侧配置面板 -->
             <v-col cols="12" md="8" lg="9" class="provider-workbench__settings">
               <v-card class="provider-config-card provider-settings-panel h-100" elevation="0">
                 <div v-if="selectedProviderSource" class="provider-config-header">
                   <div class="provider-config-headline">
                     <div class="provider-config-kicker">{{ tm('providers.settings') }}</div>
-                    <div class="provider-config-title">{{ selectedProviderSource.id }}</div>
-                    <div class="provider-config-subtitle">
-                      {{ selectedProviderSource.api_base || 'N/A' }}
+                    <div class="d-flex align-center mt-2">
+                      <v-avatar size="32" class="me-3" rounded="0">
+                        <v-img :src="resolveSourceIcon(selectedProviderSource)" alt="logo" cover></v-img>
+                      </v-avatar>
+                      <div class="provider-config-title">{{ selectedProviderSource.id }}</div>
                     </div>
                   </div>
 
@@ -64,174 +62,239 @@
                       :disabled="!isSourceModified"
                       @click="saveProviderSource"
                       variant="tonal"
+                      rounded="xl"
                     >
                       {{ tm('providerSources.save') }}
                     </v-btn>
                   </div>
                 </div>
 
-                <v-card-text class="provider-config-body">
-                  <template v-if="selectedProviderSource">
-                    <section class="provider-section">
-                      <div class="provider-section-head">
-                        <div class="provider-section-title">{{ tm('providers.settings') }}</div>
-                      </div>
-                      <AstrBotConfig v-if="basicSourceConfig" :iterable="basicSourceConfig" :metadata="providerSourceSchema"
-                        metadataKey="provider" :is-editing="true" />
-                    </section>
+                <v-card-text class="provider-config-body" v-if="selectedProviderSource">
+                  <!-- 提供商基础信息 -->
+                  <section class="provider-section">
+                    <div class="provider-section-head">
+                      <div class="provider-section-title">基础配置</div>
+                    </div>
+                    
+                    <div class="object-config">
+                      <!-- Provider Selection Row -->
+                      <v-row class="config-row">
+                        <v-col cols="12" sm="6" class="property-info">
+                          <v-list-item density="compact">
+                            <v-list-item-title class="property-name">
+                              Provider <span class="property-key">(provider)</span>
+                            </v-list-item-title>
+                            <v-list-item-subtitle class="property-hint">
+                              选择大模型服务提供商
+                            </v-list-item-subtitle>
+                          </v-list-item>
+                        </v-col>
+                        <v-col cols="12" sm="6" class="config-input">
+                          <v-autocomplete
+                            v-model="selectedTemplateKey"
+                            :items="availableProviders"
+                            item-title="label"
+                            item-value="value"
+                            variant="outlined"
+                            density="compact"
+                            hide-details
+                            class="config-field"
+                            auto-select-first
+                            @update:model-value="onProviderChange"
+                          >
+                            <!-- 选定项显示图标 -->
+                            <template v-slot:selection="{ item }">
+                              <div class="d-flex align-center">
+                                <v-avatar size="18" rounded="0" class="me-2">
+                                  <v-img :src="getProviderIcon(templatesMap[item.value]?.provider)" cover></v-img>
+                                </v-avatar>
+                                <span class="text-body-2">{{ item.title }}</span>
+                              </div>
+                            </template>
 
-                    <section v-if="advancedSourceConfig" class="provider-section">
-                      <div class="provider-section-head">
-                        <div class="provider-section-title">{{ tm('providerSources.advancedConfig') }}</div>
-                      </div>
-                      <AstrBotConfig
-                        :iterable="advancedSourceConfig"
+                            <!-- 列表项显示图标 -->
+                            <template v-slot:item="{ props, item }">
+                              <v-list-item v-bind="props">
+                                <template v-slot:prepend>
+                                  <v-avatar size="20" rounded="0" class="me-2">
+                                    <v-img :src="getProviderIcon(templatesMap[item.value]?.provider)" cover></v-img>
+                                  </v-avatar>
+                                </template>
+                              </v-list-item>
+                            </template>
+                          </v-autocomplete>
+                        </v-col>
+                      </v-row>
+
+                      <v-divider class="config-divider"></v-divider>
+
+                      <!-- ID Input Row -->
+                      <v-row class="config-row">
+                        <v-col cols="12" sm="6" class="property-info">
+                          <v-list-item density="compact">
+                            <v-list-item-title class="property-name">
+                              ID <span class="property-key">(id)</span>
+                            </v-list-item-title>
+                            <v-list-item-subtitle class="property-hint">
+                              该提供商源的唯一标识符
+                            </v-list-item-subtitle>
+                          </v-list-item>
+                        </v-col>
+                        <v-col cols="12" sm="6" class="config-input">
+                          <v-text-field
+                            v-model="editableProviderSource.id"
+                            variant="outlined"
+                            density="compact"
+                            hide-details
+                            class="config-field"
+                            @input="idTouched = true"
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+
+                      <v-divider class="config-divider"></v-divider>
+
+                      <!-- 使用 AstrBotConfig 渲染 Key, API Base 等 -->
+                      <AstrBotConfig 
+                        v-if="basicSourceConfig" 
+                        :iterable="basicSourceConfig" 
                         :metadata="providerSourceSchema"
-                        metadataKey="provider"
-                        :is-editing="true"
+                        metadataKey="provider" 
+                        :is-editing="true" 
                       />
-                    </section>
+                    </div>
+                    
+                    <div class="d-flex justify-end mt-4">
+                       <v-btn
+                        variant="tonal"
+                        size="small"
+                        color="info"
+                        prepend-icon="mdi-swap-horizontal"
+                        @click="testSourceConnectivity"
+                        :loading="testingSource"
+                        rounded="xl"
+                      >
+                        测试连接
+                      </v-btn>
+                    </div>
+                  </section>
 
-                    <section class="provider-section provider-section--models">
-                      <ProviderModelsPanel
-                        :entries="filteredMergedModelEntries"
-                        :available-count="availableModels.length"
-                        v-model:model-search="modelSearch"
-                        :loading-models="loadingModels"
-                        :is-source-modified="isSourceModified"
-                        :supports-image-input="supportsImageInput"
-                        :supports-audio-input="supportsAudioInput"
-                        :supports-tool-call="supportsToolCall"
-                        :supports-reasoning="supportsReasoning"
-                        :format-context-limit="formatContextLimit"
-                        :testing-providers="testingProviders"
-                        :tm="tm"
-                        @fetch-models="fetchAvailableModels"
-                        @open-manual-model="openManualModelDialog"
-                        @open-provider-edit="openProviderEdit"
-                        @toggle-provider-enable="toggleProviderEnable"
-                        @test-provider="testProvider"
-                        @delete-provider="deleteProvider"
-                        @add-model-provider="addModelProvider"
-                      />
-                    </section>
-                  </template>
-                  <div v-else class="provider-empty-state">
-                    <v-icon size="48" color="grey-lighten-1">mdi-cursor-default-click</v-icon>
-                    <p class="mt-2">{{ tm('providerSources.selectHint') }}</p>
-                  </div>
+                  <!-- 高级配置 -->
+                  <section v-if="advancedSourceConfig" class="provider-section mt-4">
+                    <div class="provider-section-head d-flex justify-space-between align-center">
+                      <div class="provider-section-title">{{ tm('providerSources.advancedConfig') }}</div>
+                      <v-btn
+                        variant="text"
+                        size="small"
+                        :icon="showAdvanced ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                        @click="showAdvanced = !showAdvanced"
+                      ></v-btn>
+                    </div>
+                    <v-expand-transition>
+                      <div v-show="showAdvanced">
+                        <AstrBotConfig
+                          :iterable="advancedSourceConfig"
+                          :metadata="providerSourceSchema"
+                          metadataKey="provider"
+                          :is-editing="true"
+                        />
+                      </div>
+                    </v-expand-transition>
+                  </section>
+
+                  <!-- 已配置模型管理 -->
+                  <section class="provider-section provider-section--models mt-4">
+                    <ProviderModelsPanel
+                      :entries="filteredMergedModelEntries"
+                      :available-count="availableModels.length"
+                      v-model:model-search="modelSearch"
+                      :loading-models="loadingModels"
+                      :is-source-modified="isSourceModified"
+                      :supports-image-input="supportsImageInput"
+                      :supports-audio-input="supportsAudioInput"
+                      :supports-tool-call="supportsToolCall"
+                      :supports-reasoning="supportsReasoning"
+                      :format-context-limit="formatContextLimit"
+                      :testing-providers="testingProviders"
+                      :tm="tm"
+                      @fetch-models="fetchAvailableModels"
+                      @open-manual-model="openManualModelDialog"
+                      @open-provider-edit="openProviderEdit"
+                      @toggle-provider-enable="toggleProviderEnable"
+                      @test-provider="testProvider"
+                      @delete-provider="deleteProvider"
+                      @add-model-provider="addModelProvider"
+                    />
+                  </section>
                 </v-card-text>
+
+                <div v-else class="provider-empty-state">
+                  <v-icon size="64" color="grey-lighten-1">mdi-toy-brick-plus-outline</v-icon>
+                  <p class="mt-4 text-h3">{{ tm('providerSources.selectHint') }}</p>
+                  <p class="text-body-1 text-medium-emphasis">从左侧选择或创建一个提供商源以开始配置</p>
+                </div>
               </v-card>
             </v-col>
           </v-row>
         </div>
-
-        <!-- 其他类型: 卡片布局 -->
-        <template v-else>
-          <v-row v-if="filteredProviders.length === 0">
-            <v-col cols="12" class="text-center pa-8">
-              <v-icon size="64" color="grey-lighten-1">mdi-api-off</v-icon>
-              <p class="text-grey mt-4">{{ getEmptyText() }}</p>
-            </v-col>
-          </v-row>
-          <v-row v-else>
-            <v-col v-for="(provider, index) in filteredProviders" :key="index" cols="12" md="6" lg="4" xl="3">
-              <item-card :item="provider" title-field="id" enabled-field="enable"
-                :loading="isProviderTesting(provider.id)" @toggle-enabled="toggleProviderEnable(provider, !provider.enable)"
-                :bglogo="getProviderIcon(provider.provider)" @delete="deleteProvider" @edit="configExistingProvider"
-                @copy="copyProvider" :show-copy-button="true">
-
-                <template #item-details="{ item }">
-                  <!-- 测试状态 chip -->
-                  <v-tooltip v-if="getProviderStatus(item.id)" location="top" max-width="300">
-                    <template v-slot:activator="{ props }">
-                      <v-chip v-bind="props" :color="getStatusColor(getProviderStatus(item.id).status)" size="small">
-                        <v-icon start size="small">
-                          {{ getProviderStatus(item.id).status === 'available' ? 'mdi-check-circle' :
-                            getProviderStatus(item.id).status === 'unavailable' ? 'mdi-alert-circle' :
-                              'mdi-clock-outline' }}
-                        </v-icon>
-                        {{ getStatusText(getProviderStatus(item.id).status) }}
-                      </v-chip>
-                    </template>
-                    <span v-if="getProviderStatus(item.id).status === 'unavailable'">
-                      {{ getProviderStatus(item.id).error }}
-                    </span>
-                    <span v-else>{{ getStatusText(getProviderStatus(item.id).status) }}</span>
-                  </v-tooltip>
-                </template>
-                <template #actions="{ item }">
-                  <v-btn style="z-index: 100000;" variant="tonal" color="info" rounded="xl" size="small"
-                    :loading="isProviderTesting(item.id)" @click="testSingleProvider(item)">
-                    {{ tm('availability.test') }}
-                  </v-btn>
-                </template>
-              </item-card>
-            </v-col>
-          </v-row>
-        </template>
       </div>
     </v-container>
 
-    <!-- 添加提供商对话框 -->
-    <AddNewProvider v-model:show="showAddProviderDialog" :metadata="configSchema"
-      :current-provider-type="selectedProviderType"
-      @select-template="selectProviderTemplate" />
-
     <!-- 手动添加模型对话框 -->
-    <v-dialog v-model="showManualModelDialog" max-width="400">
-      <v-card :title="tm('models.manualDialogTitle')">
+    <v-dialog v-model="showManualModelDialog" max-width="450">
+      <v-card :title="tm('models.manualDialogTitle')" rounded="xl">
         <v-card-text class="py-4">
-          <v-text-field v-model="manualModelId" :label="tm('models.manualDialogModelLabel')" flat variant="solo-filled" autofocus clearable></v-text-field>
-          <v-text-field :model-value="manualProviderId" flat variant="solo-filled" :label="tm('models.manualDialogPreviewLabel')" persistent-hint
-            :hint="tm('models.manualDialogPreviewHint')"></v-text-field>
+          <v-text-field 
+            v-model="manualModelId" 
+            :label="tm('models.manualDialogModelLabel')" 
+            flat 
+            variant="solo-filled" 
+            autofocus 
+            clearable
+            class="mb-4"
+          ></v-text-field>
+          <v-text-field 
+            :model-value="manualProviderId" 
+            flat 
+            variant="solo-filled" 
+            :label="tm('models.manualDialogPreviewLabel')" 
+            persistent-hint
+            readonly
+            density="compact"
+            :hint="tm('models.manualDialogPreviewHint')"
+          ></v-text-field>
         </v-card-text>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="showManualModelDialog = false">取消</v-btn>
-          <v-btn color="primary" @click="confirmManualModel">添加</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- 配置对话框 -->
-    <v-dialog v-model="showProviderCfg" width="900" persistent>
-      <v-card
-        :title="updatingMode ? tm('dialogs.config.editTitle') : tm('dialogs.config.addTitle') + ` ${newSelectedProviderName} ` + tm('dialogs.config.provider')">
-        <v-card-text class="py-4">
-          <AstrBotConfig :iterable="newSelectedProviderConfig" :metadata="configSchema"
-            metadataKey="provider" :is-editing="updatingMode" />
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="showProviderCfg = false" :disabled="loading">
-            {{ tm('dialogs.config.cancel') }}
-          </v-btn>
-          <v-btn color="primary" @click="newProvider" :loading="loading">
-            {{ tm('dialogs.config.save') }}
-          </v-btn>
+          <v-btn variant="text" @click="showManualModelDialog = false" rounded="xl">取消</v-btn>
+          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="xl">添加</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- 已配置模型编辑对话框 -->
     <v-dialog v-model="showProviderEditDialog" width="800">
-      <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')">
+      <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')" rounded="xl">
         <v-card-text class="py-4">
-          <small style="color: gray;">不建议修改 ID，可能会导致指向该模型的相关配置（如默认模型、插件相关配置等）失效。旧版本 AstrBot 的 “提供商 ID” 是下方的 “ID”。</small>
-          <AstrBotConfig v-if="providerEditData" :iterable="providerEditData" :metadata="configSchema"
-            metadataKey="provider" :is-editing="true" />
+          <v-alert type="warning" variant="tonal" class="mb-4" density="compact">
+            不建议修改 ID，可能会导致指向该模型的相关配置失效。
+          </v-alert>
+          <AstrBotConfig 
+            v-if="providerEditData" 
+            :iterable="providerEditData" 
+            :metadata="configSchema"
+            metadataKey="provider" 
+            :is-editing="true" 
+          />
         </v-card-text>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="showProviderEditDialog = false"
-            :disabled="savingProviders.includes(providerEditData?.id)">
+            :disabled="savingProviders.includes(providerEditData?.id)" rounded="xl">
             {{ tm('dialogs.config.cancel') }}
           </v-btn>
-          <v-btn color="primary" @click="saveEditedProvider" :loading="savingProviders.includes(providerEditData?.id)">
+          <v-btn color="primary" @click="saveEditedProvider" 
+            :loading="savingProviders.includes(providerEditData?.id)" variant="flat" rounded="xl">
             {{ tm('dialogs.config.save') }}
           </v-btn>
         </v-card-actions>
@@ -239,44 +302,17 @@
     </v-dialog>
 
     <!-- 消息提示 -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top">
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top" rounded="xl">
       {{ snackbar.message }}
     </v-snackbar>
-
-    <!-- Agent Runner 测试提示对话框 -->
-    <v-dialog v-model="showAgentRunnerDialog" max-width="520" persistent>
-      <v-card>
-        <v-card-title class="text-h3 d-flex align-center">
-          <v-icon start class="me-2">mdi-information</v-icon>
-          请前往「配置文件」页测试 Agent 执行器
-        </v-card-title>
-        <v-card-text class="py-4 text-body-1 text-medium-emphasis">
-          Agent 执行器的测试请在「配置文件」页进行。
-          <ol class="ml-4 mt-4 mb-4">
-            <li>找到对应的配置文件并打开。</li>
-            <li>找到 Agent 执行方式部分，修改执行器后点击保存。</li>
-            <li>点击右下角的 💬 聊天按钮进行测试。</li>
-          </ol>
-          要让机器人应用这个 Agent 执行器，你也需要前往修改 Agent 执行器。
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showAgentRunnerDialog = false">好的</v-btn>
-          <v-btn color="primary" variant="flat" @click="goToConfigPage">点击前往</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch, computed } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue'
-import ItemCard from '@/components/shared/ItemCard.vue'
-import AddNewProvider from '@/components/provider/AddNewProvider.vue'
 import ProviderModelsPanel from '@/components/provider/ProviderModelsPanel.vue'
 import ProviderSourcesPanel from '@/components/provider/ProviderSourcesPanel.vue'
 import { useProviderSources } from '@/composables/useProviderSources'
@@ -285,12 +321,11 @@ import { getProviderIcon } from '@/utils/providerUtils'
 const props = defineProps({
   defaultTab: {
     type: String,
-    default: 'chat_completion'
+    default: 'completions'
   }
 })
 
 const { tm } = useModuleI18n('features/provider')
-const router = useRouter()
 
 const snackbar = ref({
   show: false,
@@ -303,9 +338,10 @@ function showMessage(message, color = 'success') {
 }
 
 const {
-  providers,
   selectedProviderType,
   selectedProviderSource,
+  selectedProviderSourceOriginalId,
+  editableProviderSource,
   availableModels,
   loadingModels,
   savingSource,
@@ -319,7 +355,6 @@ const {
   availableSourceTypes,
   displayedProviderSources,
   filteredMergedModelEntries,
-  filteredProviders,
   basicSourceConfig,
   advancedSourceConfig,
   manualProviderId,
@@ -341,33 +376,135 @@ const {
   modelAlreadyConfigured,
   testProvider,
   loadConfig,
+  providerTemplates
 } = useProviderSources({
   defaultTab: props.defaultTab,
   tm,
   showMessage
 })
 
-// 非 chat 类型的状态
-const showAddProviderDialog = ref(false)
-const showProviderCfg = ref(false)
-const newSelectedProviderName = ref('')
-const newSelectedProviderConfig = ref({})
-const newProviderOriginalId = ref('')
-const updatingMode = ref(false)
-const loading = ref(false)
-const providerStatuses = ref([])
-const showAgentRunnerDialog = ref(false)
+const showAdvanced = ref(false)
+const testingSource = ref(false)
 const showProviderEditDialog = ref(false)
 const providerEditData = ref(null)
 const providerEditOriginalId = ref('')
 const showManualModelDialog = ref(false)
-
 const savingProviders = ref([])
+
+// 状态变量
+const selectedTemplateKey = ref('')
+const idTouched = ref(false) // 追踪用户是否手动改过 ID
+
+const uiTypeToBackendType = {
+    'completions': 'chat_completion',
+    'audio/transcriptions': 'speech_to_text',
+    'audio/speech': 'text_to_speech',
+    'embeddings': 'embedding',
+    'rerank': 'rerank'
+}
+
+const templatesMap = computed(() => providerTemplates.value || {})
+
+const availableProviders = computed(() => {
+  const templates = templatesMap.value
+  const backendType = uiTypeToBackendType[selectedProviderType.value] || selectedProviderType.value
+  
+  return Object.entries(templates)
+    .filter(([_, t]) => t.provider_type === backendType)
+    .map(([name, t]) => ({
+      label: name,
+      value: name 
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label)) // 增加首字母排序
+})
+
+// 监听选中源的变化，初始化状态
+watch(selectedProviderSource, (newSource) => {
+  idTouched.value = false // 切换源时，重置“手动修改”标记
+  if (newSource) {
+    const templates = templatesMap.value
+    const found = Object.entries(templates).find(([_, t]) => 
+      t.provider === newSource.provider && t.type === newSource.type
+    )
+    selectedTemplateKey.value = found ? found[0] : ''
+  } else {
+    selectedTemplateKey.value = ''
+  }
+}, { immediate: true })
+
+function onProviderChange(templateName) {
+  const templates = templatesMap.value
+  const template = templates[templateName]
+  
+  if (template && editableProviderSource.value) {
+    // 智能同步 ID：如果用户没手动改过 ID，则根据新模板自动更新 ID
+    if (!idTouched.value) {
+      editableProviderSource.value.id = template.id || templateName
+    }
+
+    editableProviderSource.value.provider = template.provider
+    editableProviderSource.value.type = template.type
+
+    const excludeKeys = ['id', 'enable', 'model', 'provider_source_id', 'modalities', 'custom_extra_body', 'provider']
+    const baseFields = ['id', 'enable', 'provider', 'type', 'provider_type', 'api_base', 'key']
+    
+    Object.keys(editableProviderSource.value).forEach(key => {
+        if (!baseFields.includes(key)) {
+            delete editableProviderSource.value[key]
+        }
+    })
+    
+    for (const [key, value] of Object.entries(template)) {
+      if (!excludeKeys.includes(key)) {
+        editableProviderSource.value[key] = value
+      }
+    }
+  }
+  isSourceModified.value = true
+}
+
+async function testSourceConnectivity() {
+  if (!editableProviderSource.value) return
+  testingSource.value = true
+  try {
+    const response = await axios.get('/api/config/provider_sources/models', {
+      params: { source_id: editableProviderSource.value.id }
+    })
+    if (response.data.status === 'ok') {
+      showMessage('连接测试成功！已成功获取模型列表。')
+    } else {
+      throw new Error(response.data.message)
+    }
+  } catch (err) {
+    showMessage('连接测试失败: ' + (err.response?.data?.message || err.message), 'error')
+  } finally {
+    testingSource.value = false
+  }
+}
 
 function openProviderEdit(provider) {
   providerEditData.value = JSON.parse(JSON.stringify(provider))
   providerEditOriginalId.value = provider.id
   showProviderEditDialog.value = true
+}
+
+async function saveEditedProvider() {
+  if (!providerEditData.value) return
+  savingProviders.value.push(providerEditData.value.id)
+  try {
+    const res = await axios.post('/api/config/provider/update', {
+      id: providerEditOriginalId.value || providerEditData.value.id,
+      config: providerEditData.value
+    })
+    if (res.data.status === 'error') throw new Error(res.data.message)
+    showMessage(res.data.message || tm('providerSources.saveSuccess'))
+    showProviderEditDialog.value = false
+    await loadConfig()
+  } catch (err) {
+    showMessage(err.response?.data?.message || err.message || tm('providerSources.saveError'), 'error')
+  } finally {
+    savingProviders.value = savingProviders.value.filter(id => id !== providerEditData.value?.id)
+  }
 }
 
 function openManualModelDialog() {
@@ -381,10 +518,7 @@ function openManualModelDialog() {
 
 async function confirmManualModel() {
   const modelId = manualModelId.value.trim()
-  if (!selectedProviderSource.value) {
-    showMessage(tm('providerSources.selectHint'), 'error')
-    return
-  }
+  if (!selectedProviderSource.value) return
   if (!modelId) {
     showMessage(tm('models.manualModelRequired'), 'error')
     return
@@ -401,280 +535,6 @@ watch(() => props.defaultTab, (val) => {
   updateDefaultTab(val)
 })
 
-// ===== 非 chat 类型的方法 =====
-function getEmptyText() {
-  return tm('providers.empty.typed', { type: selectedProviderType.value })
-}
-
-function selectProviderTemplate(name) {
-  newSelectedProviderName.value = name
-  newProviderOriginalId.value = ''
-  showProviderCfg.value = true
-  updatingMode.value = false
-  newSelectedProviderConfig.value = JSON.parse(JSON.stringify(
-    configSchema.value.provider.config_template[name] || {}
-  ))
-}
-
-function configExistingProvider(provider) {
-  newSelectedProviderName.value = provider.id
-  newProviderOriginalId.value = provider.id
-  newSelectedProviderConfig.value = {}
-
-  // 比对默认配置模版，看看是否有更新
-  let templates = configSchema.value.provider.config_template || {}
-  let defaultConfig = {}
-  for (let key in templates) {
-    if (templates[key]?.type === provider.type) {
-      defaultConfig = templates[key]
-      break
-    }
-  }
-
-  const mergeConfigWithOrder = (target, source, reference) => {
-    if (source && typeof source === 'object' && !Array.isArray(source)) {
-      for (let key in source) {
-        if (source.hasOwnProperty(key)) {
-          if (typeof source[key] === 'object' && source[key] !== null) {
-            target[key] = Array.isArray(source[key]) ? [...source[key]] : { ...source[key] }
-          } else {
-            target[key] = source[key]
-          }
-        }
-      }
-    }
-
-    for (let key in reference) {
-      if (typeof reference[key] === 'object' && reference[key] !== null) {
-        if (!(key in target)) {
-          if (Array.isArray(reference[key])) {
-            target[key] = [...reference[key]]
-          } else {
-            target[key] = {}
-          }
-        }
-        if (!Array.isArray(reference[key])) {
-          mergeConfigWithOrder(
-            target[key],
-            source && source[key] ? source[key] : {},
-            reference[key]
-          )
-        }
-      } else if (!(key in target)) {
-        target[key] = reference[key]
-      }
-    }
-  }
-
-  if (defaultConfig) {
-    mergeConfigWithOrder(newSelectedProviderConfig.value, provider, defaultConfig)
-  }
-
-  showProviderCfg.value = true
-  updatingMode.value = true
-}
-
-async function newProvider() {
-  loading.value = true
-  const wasUpdating = updatingMode.value
-  try {
-    if (wasUpdating) {
-      const res = await axios.post('/api/config/provider/update', {
-        id: newProviderOriginalId.value || newSelectedProviderName.value,
-        config: newSelectedProviderConfig.value
-      })
-      if (res.data.status === 'error') {
-        showMessage(res.data.message || "更新失败!", 'error')
-        return
-      }
-      showMessage(res.data.message || "更新成功!")
-      if (wasUpdating) {
-        updatingMode.value = false
-      }
-    } else {
-      const res = await axios.post('/api/config/provider/new', newSelectedProviderConfig.value)
-      if (res.data.status === 'error') {
-        showMessage(res.data.message || "添加失败!", 'error')
-        return
-      }
-      showMessage(res.data.message || "添加成功!")
-    }
-    showProviderCfg.value = false
-  } catch (err) {
-    showMessage(err.response?.data?.message || err.message, 'error')
-  } finally {
-    loading.value = false
-    await loadConfig()
-  }
-}
-
-async function saveEditedProvider() {
-  if (!providerEditData.value) return
-
-  savingProviders.value.push(providerEditData.value.id)
-  try {
-    const res = await axios.post('/api/config/provider/update', {
-      id: providerEditOriginalId.value || providerEditData.value.id,
-      config: providerEditData.value
-    })
-
-    if (res.data.status === 'error') {
-      throw new Error(res.data.message)
-    }
-
-    showMessage(res.data.message || tm('providerSources.saveSuccess'))
-    showProviderEditDialog.value = false
-    await loadConfig()
-  } catch (err) {
-    showMessage(err.response?.data?.message || err.message || tm('providerSources.saveError'), 'error')
-  } finally {
-    savingProviders.value = savingProviders.value.filter(id => id !== providerEditData.value?.id)
-  }
-}
-
-async function copyProvider(providerToCopy) {
-  const newProviderConfig = JSON.parse(JSON.stringify(providerToCopy))
-
-  const generateUniqueId = (baseId) => {
-    let newId = `${baseId}_copy`
-    let counter = 1
-    const existingIds = providers.value.map(p => p.id)
-    while (existingIds.includes(newId)) {
-      newId = `${baseId}_copy_${counter}`
-      counter++
-    }
-    return newId
-  }
-  newProviderConfig.id = generateUniqueId(providerToCopy.id)
-  newProviderConfig.enable = false
-
-  loading.value = true
-  try {
-    const res = await axios.post('/api/config/provider/new', newProviderConfig)
-    showMessage(res.data.message || `成功复制并创建了 ${newProviderConfig.id}`)
-    await loadConfig()
-  } catch (err) {
-    showMessage(err.response?.data?.message || err.message, 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-async function toggleProviderEnable(provider, value) {
-  provider.enable = value
-
-  try {
-    const res = await axios.post('/api/config/provider/update', {
-      id: provider.id,
-      config: provider
-    })
-
-    if (res.data.status === 'error') {
-      throw new Error(res.data.message)
-    }
-    showMessage(res.data.message || tm('messages.success.statusUpdate'))
-  } catch (error) {
-    showMessage(error.response?.data?.message || error.message || tm('providerSources.saveError'), 'error')
-  } finally {
-    await loadConfig()
-  }
-}
-
-function isProviderTesting(providerId) {
-  return testingProviders.value.includes(providerId)
-}
-
-function getProviderStatus(providerId) {
-  return providerStatuses.value.find(s => s.id === providerId)
-}
-
-async function testSingleProvider(provider) {
-  if (isProviderTesting(provider.id)) return
-
-  testingProviders.value.push(provider.id)
-
-  const statusIndex = providerStatuses.value.findIndex(s => s.id === provider.id)
-  const pendingStatus = {
-    id: provider.id,
-    name: provider.id,
-    status: 'pending',
-    error: null
-  }
-  if (statusIndex !== -1) {
-    providerStatuses.value.splice(statusIndex, 1, pendingStatus)
-  } else {
-    providerStatuses.value.unshift(pendingStatus)
-  }
-
-  try {
-    if (!provider.enable) {
-      throw new Error('该提供商未被用户启用')
-    }
-    if (provider.provider_type === 'agent_runner') {
-      showAgentRunnerDialog.value = true
-      providerStatuses.value = providerStatuses.value.filter(s => s.id !== provider.id)
-      return
-    }
-
-    const startTime = performance.now()
-    const res = await axios.get(`/api/config/provider/check_one?id=${provider.id}`)
-    if (res.data && res.data.status === 'ok') {
-      const index = providerStatuses.value.findIndex(s => s.id === provider.id)
-      if (index !== -1) {
-        providerStatuses.value.splice(index, 1, res.data.data)
-      }
-      const latency = Math.max(0, Math.round(performance.now() - startTime))
-      showMessage(tm('models.testSuccessWithLatency', { id: provider.id, latency }))
-    } else {
-      throw new Error(res.data?.message || `Failed to check status for ${provider.id}`)
-    }
-  } catch (err) {
-    const errorMessage = err.response?.data?.message || err.message || 'Unknown error'
-    const index = providerStatuses.value.findIndex(s => s.id === provider.id)
-    const failedStatus = {
-      id: provider.id,
-      name: provider.id,
-      status: 'unavailable',
-      error: errorMessage
-    }
-    if (index !== -1) {
-      providerStatuses.value.splice(index, 1, failedStatus)
-    }
-  } finally {
-    const index = testingProviders.value.indexOf(provider.id)
-    if (index > -1) {
-      testingProviders.value.splice(index, 1)
-    }
-  }
-}
-
-function getStatusColor(status) {
-  switch (status) {
-    case 'available':
-      return 'success'
-    case 'unavailable':
-      return 'error'
-    case 'pending':
-      return 'grey'
-    default:
-      return 'default'
-  }
-}
-
-function getStatusText(status) {
-  const messages = {
-    available: tm('availability.available'),
-    unavailable: tm('availability.unavailable'),
-    pending: tm('availability.pending')
-  }
-  return messages[status] || status
-}
-
-function goToConfigPage() {
-  router.push('/config')
-  showAgentRunnerDialog.value = false
-}
-
 </script>
 
 <style scoped>
@@ -684,11 +544,9 @@ function goToConfigPage() {
   --provider-muted: rgba(var(--v-theme-on-surface), 0.68);
   --provider-subtle: rgba(var(--v-theme-on-surface), 0.56);
   --provider-border: rgba(var(--v-theme-on-surface), 0.1);
-  --provider-border-strong: rgba(var(--v-theme-on-surface), 0.14);
   --provider-soft: rgba(var(--v-theme-primary), 0.08);
   padding: 20px;
   padding-top: 8px;
-  padding-bottom: 40px;
 }
 
 .provider-workbench {
@@ -698,122 +556,125 @@ function goToConfigPage() {
 
 .provider-workbench__shell {
   width: 100%;
-  max-width: 1500px;
-}
-
-.provider-workbench__sources,
-.provider-workbench__settings {
-  min-width: 0;
+  max-width: 1600px;
 }
 
 .provider-config-card {
-  min-height: 280px;
+  min-height: 500px;
   border: 1px solid var(--provider-border);
-  border-radius: 16px;
+  border-radius: 20px;
   background: var(--provider-surface);
-  overflow: hidden;
-}
-
-.provider-settings-panel {
-  display: flex;
-  flex-direction: column;
 }
 
 .provider-config-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 20px 20px 16px;
+  align-items: center;
+  padding: 24px 24px 20px;
   border-bottom: 1px solid var(--provider-border);
-}
-
-.provider-config-headline {
-  min-width: 0;
 }
 
 .provider-config-kicker {
   color: var(--provider-subtle);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .provider-config-title {
-  margin-top: 8px;
-  font-size: 22px;
-  line-height: 1.1;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  overflow-wrap: anywhere;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--provider-text);
 }
 
-.provider-config-subtitle {
-  margin-top: 8px;
-  color: var(--provider-muted);
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-
-.provider-config-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .provider-config-body {
-  display: grid;
-  gap: 14px;
-  padding: 18px 20px 20px;
+  padding: 24px;
 }
 
 .provider-section {
   border: 1px solid var(--provider-border);
-  border-radius: 14px;
-  background: rgba(var(--v-theme-primary), 0.02);
-  padding: 16px;
-}
-
-.provider-section--models {
-  padding: 18px;
-}
-
-.provider-section-head {
-  margin-bottom: 10px;
+  border-radius: 16px;
+  background: rgba(var(--v-theme-on-surface), 0.01);
+  padding: 20px;
 }
 
 .provider-section-title {
   font-size: 16px;
-  font-weight: 650;
-  line-height: 1.4;
+  font-weight: 700;
   color: var(--provider-text);
+  margin-bottom: 16px;
 }
 
 .provider-empty-state {
-  min-height: 420px;
+  min-height: 500px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   color: var(--provider-muted);
+  text-align: center;
+}
+
+/* Replicating AstrBotConfig styles */
+.config-row {
+  margin: 0;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.config-row:hover {
+  background-color: rgba(var(--v-theme-on-surface), 0.03);
+}
+
+.property-info {
+  padding: 0;
+}
+
+.property-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--v-theme-primaryText);
+}
+
+.property-hint {
+  font-size: 0.75rem;
+  color: var(--v-theme-secondaryText);
+  margin-top: 2px;
+}
+
+.property-key {
+  font-size: 0.85em;
+  opacity: 0.7;
+  font-weight: normal;
+  display: none; /* Matches AstrBotConfig behavior */
+}
+
+.config-input {
+  padding: 4px 8px;
+}
+
+.config-field {
+  margin-bottom: 0;
+}
+
+.config-divider {
+  border-color: rgba(var(--v-theme-on-surface), 0.05);
+  margin: 0px 16px;
 }
 
 @media (max-width: 960px) {
-  .provider-config-card {
-    min-height: auto;
-  }
-
   .provider-config-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 16px;
   }
-
-  .provider-config-body {
-    padding: 18px;
+  .provider-config-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
   }
 }
 </style>

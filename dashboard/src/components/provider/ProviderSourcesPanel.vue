@@ -9,33 +9,16 @@
           </v-chip>
         </div>
       </div>
-      <StyledMenu>
-        <template #activator="{ props }">
-          <v-btn
-            v-bind="props"
-            prepend-icon="mdi-plus"
-            color="primary"
-            variant="tonal"
-            size="small"
-          >
-            {{ tm('providerSources.add') }}
-          </v-btn>
-        </template>
-        <v-list-item
-          v-for="sourceType in availableSourceTypes"
-          :key="sourceType.value"
-          class="styled-menu-item"
-          @click="emitAddSource(sourceType.value)"
-        >
-          <template #prepend>
-            <v-avatar size="18" rounded="0" class="me-2">
-              <v-img v-if="sourceType.icon" :src="sourceType.icon" alt="provider icon" cover></v-img>
-              <v-icon v-else size="16">mdi-shape-outline</v-icon>
-            </v-avatar>
-          </template>
-          <v-list-item-title>{{ sourceType.label }}</v-list-item-title>
-        </v-list-item>
-      </StyledMenu>
+      <v-btn
+        prepend-icon="mdi-plus"
+        color="primary"
+        variant="tonal"
+        size="small"
+        rounded="xl"
+        @click="emitAddSource(null)"
+      >
+        {{ tm('providerSources.add') }}
+      </v-btn>
     </div>
 
     <div v-if="isMobile && displayedProviderSources.length > 0" class="provider-sources-mobile">

@@ -13,27 +13,27 @@ export interface UseProviderSourcesOptions {
 export function resolveDefaultTab(value?: string) {
   const normalized = (value || '').toLowerCase()
 
-  if (normalized.startsWith('select_agent_runner_provider') || normalized === 'agent_runner') {
-    return 'agent_runner'
+  if (normalized === 'completions' || normalized === 'chat_completion') {
+    return 'completions'
   }
 
-  if (normalized === 'select_provider_stt' || normalized === 'speech_to_text' || normalized.includes('stt')) {
-    return 'speech_to_text'
+  if (normalized.includes('transcription') || normalized.includes('stt')) {
+    return 'audio/transcriptions'
   }
 
-  if (normalized === 'select_provider_tts' || normalized === 'text_to_speech' || normalized.includes('tts')) {
-    return 'text_to_speech'
+  if (normalized.includes('speech') || normalized.includes('tts')) {
+    return 'audio/speech'
   }
 
   if (normalized.includes('embedding')) {
-    return 'embedding'
+    return 'embeddings'
   }
 
   if (normalized.includes('rerank')) {
     return 'rerank'
   }
 
-  return 'chat_completion'
+  return 'completions'
 }
 
 export function useProviderSources(options: UseProviderSourcesOptions) {
@@ -68,13 +68,20 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
   let suppressSourceWatch = false
 
   const providerTypes = computed(() => [
-    { value: 'chat_completion', label: tm('providers.tabs.chatCompletion'), icon: 'mdi-message-text' },
-    { value: 'agent_runner', label: tm('providers.tabs.agentRunner'), icon: 'mdi-robot' },
-    { value: 'speech_to_text', label: tm('providers.tabs.speechToText'), icon: 'mdi-microphone-message' },
-    { value: 'text_to_speech', label: tm('providers.tabs.textToSpeech'), icon: 'mdi-volume-high' },
-    { value: 'embedding', label: tm('providers.tabs.embedding'), icon: 'mdi-code-json' },
+    { value: 'completions', label: tm('providers.tabs.chatCompletion'), icon: 'mdi-message-text' },
+    { value: 'audio/transcriptions', label: tm('providers.tabs.speechToText'), icon: 'mdi-microphone-message' },
+    { value: 'audio/speech', label: tm('providers.tabs.textToSpeech'), icon: 'mdi-volume-high' },
+    { value: 'embeddings', label: tm('providers.tabs.embedding'), icon: 'mdi-code-json' },
     { value: 'rerank', label: tm('providers.tabs.rerank'), icon: 'mdi-compare-vertical' }
   ])
+
+  const uiTypeToBackendType: Record<string, string> = {
+    'completions': 'chat_completion',
+    'audio/transcriptions': 'speech_to_text',
+    'audio/speech': 'text_to_speech',
+    'embeddings': 'embedding',
+    'rerank': 'rerank'
+  }
 
   // ===== Computed =====
   const availableSourceTypes = computed(() => {
@@ -83,8 +90,10 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
     }
 
     const types: Array<{ value: string; label: string; icon: string }> = []
+    const backendType = uiTypeToBackendType[selectedProviderType.value] || selectedProviderType.value
+    
     for (const [templateName, template] of Object.entries(providerTemplates.value)) {
-      if (template.provider_type === selectedProviderType.value) {
+      if (template.provider_type === backendType) {
         types.push({
           value: templateName,
           label: templateName,
@@ -98,9 +107,10 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
 
   const filteredProviderSources = computed(() => {
     if (!providerSources.value) return []
+    const backendType = uiTypeToBackendType[selectedProviderType.value] || selectedProviderType.value
 
     return providerSources.value.filter((source) =>
-      source.provider_type === selectedProviderType.value ||
+      source.provider_type === backendType ||
       (source.type && isTypeMatchingProviderType(source.type, selectedProviderType.value))
     )
   })
@@ -183,10 +193,14 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
   const basicSourceConfig = computed(() => {
     if (!editableProviderSource.value) return null
 
-    const fields = ['id', 'key', 'api_base']
+    // 排除 ID，因为我们在页面顶部手动渲染了它
+    const fields = ['key', 'api_base']
     const basic: Record<string, any> = {}
 
     fields.forEach((field) => {
+      // 只有当字段在模板中存在时才添加（有些 provider 可能不需要 api_base 或 key）
+      if (editableProviderSource.value![field] === undefined) return
+
       Object.defineProperty(basic, field, {
         get() {
           return editableProviderSource.value![field]
@@ -227,6 +241,10 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
       return []
     }
 
+    if (selectedProviderType.value === 'litellm') {
+      return providers.value.filter((provider: any) => provider.type === 'litellm_chat_completion')
+    }
+
     return providers.value.filter((provider: any) => getProviderType(provider) === selectedProviderType.value)
   })
 
@@ -254,6 +272,15 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
   })
 
   // ===== Watches =====
+  watch(selectedProviderType, () => {
+    selectedProviderSource.value = null
+    selectedProviderSourceOriginalId.value = null
+    editableProviderSource.value = null
+    availableModels.value = []
+    modelMetadata.value = {}
+    isSourceModified.value = false
+  })
+
   watch(editableProviderSource, () => {
     if (suppressSourceWatch) return
     if (!editableProviderSource.value) return
@@ -263,10 +290,8 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
   // ===== Helper Functions =====
   function isTypeMatchingProviderType(type?: string, providerType?: string) {
     if (!type || !providerType) return false
-    if (providerType === 'chat_completion') {
-      return type.includes('chat_completion')
-    }
-    return type.includes(providerType)
+    const backendType = uiTypeToBackendType[providerType] || providerType
+    return type.includes(backendType)
   }
 
   function resolveSourceIcon(source: any) {
@@ -314,30 +339,34 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
   function getProviderType(provider: any) {
     if (!provider) return undefined
     if (provider.provider_type) {
+      if (provider.provider_type === 'chat_completion') return 'completions'
+      if (provider.provider_type === 'speech_to_text') return 'audio/transcriptions'
+      if (provider.provider_type === 'text_to_speech') return 'audio/speech'
+      if (provider.provider_type === 'embedding') return 'embeddings'
       return provider.provider_type
     }
 
     const oldVersionProviderTypeMapping: Record<string, string> = {
-      openai_chat_completion: 'chat_completion',
-      anthropic_chat_completion: 'chat_completion',
-      googlegenai_chat_completion: 'chat_completion',
-      zhipu_chat_completion: 'chat_completion',
+      openai_chat_completion: 'completions',
+      anthropic_chat_completion: 'completions',
+      googlegenai_chat_completion: 'completions',
+      zhipu_chat_completion: 'completions',
       dify: 'agent_runner',
       coze: 'agent_runner',
-      dashscope: 'chat_completion',
-      openai_whisper_api: 'speech_to_text',
-      mimo_stt_api: 'speech_to_text',
-      openai_whisper_selfhost: 'speech_to_text',
-      sensevoice_stt_selfhost: 'speech_to_text',
-      openai_tts_api: 'text_to_speech',
-      mimo_tts_api: 'text_to_speech',
-      edge_tts: 'text_to_speech',
-      gsvi_tts_api: 'text_to_speech',
-      fishaudio_tts_api: 'text_to_speech',
-      dashscope_tts: 'text_to_speech',
-      azure_tts: 'text_to_speech',
-      minimax_tts_api: 'text_to_speech',
-      volcengine_tts: 'text_to_speech'
+      dashscope: 'completions',
+      openai_whisper_api: 'audio/transcriptions',
+      mimo_stt_api: 'audio/transcriptions',
+      openai_whisper_selfhost: 'audio/transcriptions',
+      sensevoice_stt_selfhost: 'audio/transcriptions',
+      openai_tts_api: 'audio/speech',
+      mimo_tts_api: 'audio/speech',
+      edge_tts: 'audio/speech',
+      gsvi_tts_api: 'audio/speech',
+      fishaudio_tts_api: 'audio/speech',
+      dashscope_tts: 'audio/speech',
+      azure_tts: 'audio/speech',
+      minimax_tts_api: 'audio/speech',
+      volcengine_tts: 'audio/speech'
     }
     return oldVersionProviderTypeMapping[provider.type]
   }
@@ -401,14 +430,26 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
     return candidate
   }
 
-  function addProviderSource(templateKey: string) {
-    const template = providerTemplates.value[templateKey]
+  function addProviderSource(templateKey?: string | null) {
+    const backendType = uiTypeToBackendType[selectedProviderType.value] || selectedProviderType.value
+    let template = templateKey ? providerTemplates.value[templateKey] : null
+
+    if (!template) {
+      // 智能寻找默认模板：优先找 provider 为 openai 的，其次找名字包含 openai 的，最后找该类型下的第一个
+      const allTemplates: any[] = Object.values(providerTemplates.value)
+      const tabTemplates = allTemplates.filter(t => t.provider_type === backendType)
+      
+      template = tabTemplates.find(t => t.provider === 'openai') ||
+                 tabTemplates.find(t => t.id?.toLowerCase().includes('openai')) ||
+                 tabTemplates[0]
+    }
+
     if (!template) {
       showMessage('未找到对应的模板配置', 'error')
       return
     }
 
-    const newId = generateUniqueSourceId(template.id)
+    const newId = generateUniqueSourceId(template.id || 'new_provider')
     const newSource = ensureProviderSourceDefaults({
       ...extractSourceFieldsFromTemplate(template),
       id: newId,
