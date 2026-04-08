@@ -795,9 +795,18 @@ class ConfigRoute(Route):
                     provider
                 )
                 provider_list.append(prov)
-            elif not ps_id and provider.get("provider_type", "") in provider_type_ls:
-                # agent runner, embedding, etc
+            elif not ps_id and (
+                provider.get("provider_type", "") in provider_type_ls
+                # model_router has no provider_type field but is a chat provider
+                or (
+                    "chat_completion" in provider_type_ls
+                    and provider.get("type") == "model_router"
+                )
+            ):
+                # agent runner, embedding, model_router, etc
                 provider_list.append(provider)
+        # Routers should appear at the top of any model selection list.
+        provider_list.sort(key=lambda p: 0 if p.get("type") == "model_router" else 1)
         return Response().ok(provider_list).__dict__
 
     async def get_provider_model_list(self):

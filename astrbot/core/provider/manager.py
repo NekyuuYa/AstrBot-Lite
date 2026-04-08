@@ -292,8 +292,20 @@ class ProviderManager:
         return provider
 
     async def initialize(self) -> None:
-        # 逐个初始化提供商
+        # Two-pass loading: ordinary providers first, model_router providers
+        # second — so that routers can resolve their member providers by ID.
+        router_configs: list[dict] = []
         for provider_config in self.providers_config:
+            if provider_config.get("type") == "model_router":
+                router_configs.append(provider_config)
+                continue
+            try:
+                await self.load_provider(provider_config)
+            except Exception as e:
+                logger.error(traceback.format_exc())
+                logger.error(e)
+
+        for provider_config in router_configs:
             try:
                 await self.load_provider(provider_config)
             except Exception as e:
@@ -681,6 +693,11 @@ class ProviderManager:
                         provider_config,
                         self.provider_settings,
                     )
+
+                    # Inject manager reference *before* initialize() so that
+                    # ProviderRouter can resolve member providers on first init.
+                    if hasattr(inst, "set_manager"):
+                        inst.set_manager(self)
 
                     if isinstance(inst, HasInitialize):
                         await inst.initialize()
