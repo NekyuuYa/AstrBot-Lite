@@ -11,7 +11,7 @@
         {{ modelValue }}
       </template>
     </span>
-    <v-btn size="small" color="primary" variant="tonal" @click="openDialog">
+    <v-btn size="small" color="primary" variant="tonal" @click="openDialog" rounded="xl">
       {{ buttonText || tm('providerSelector.buttonText') }}
     </v-btn>
   </div>
@@ -32,9 +32,9 @@
 
   <!-- Provider Selection Dialog -->
   <v-dialog v-model="dialog" max-width="600px">
-    <v-card>
+    <v-card rounded="xl">
       <v-card-title
-        class="text-h3 py-4 d-flex align-center justify-space-between gap-4 flex-wrap"
+        class="text-h3 py-4 d-flex align-center justify-space-between gap-4 flex-wrap px-6"
         style="font-weight: normal;"
       >
         <span>{{ tm('providerSelector.dialogTitle') }}</span>
@@ -43,27 +43,29 @@
           color="primary"
           variant="tonal"
           prepend-icon="mdi-plus"
+          rounded="xl"
           @click="openProviderDrawer"
         >
           {{ tm('providerSelector.createProvider') }}
         </v-btn>
       </v-card-title>
       
-      <v-card-text class="pa-0" style="max-height: 400px; overflow-y: auto;">
+      <v-card-text class="pa-0" style="max-height: 500px; overflow-y: auto;">
         <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
 
-        <div v-if="multiple && selectedProviders.length > 0" class="pa-3">
-          <div class="text-caption text-medium-emphasis mb-2">
-            {{ tm('providerSelector.selectedCount', { count: selectedProviders.length }) }}
+        <!-- 已选项目（多选模式下排序） -->
+        <div v-if="multiple && selectedProviders.length > 0" class="pa-4 bg-surface-variant-light">
+          <div class="text-caption text-medium-emphasis mb-2 font-weight-bold">
+            {{ tm('providerSelector.selectedCount', { count: selectedProviders.length }) }} (可拖动排序)
           </div>
-          <v-list density="compact" class="selected-order-list">
+          <v-list density="compact" class="selected-order-list pa-1" bg-color="transparent">
             <v-list-item
               v-for="(providerId, index) in selectedProviders"
               :key="`selected-${providerId}-${index}`"
-              rounded="md"
-              class="ma-1"
+              rounded="lg"
+              class="mb-1 bg-surface shadow-sm"
             >
-              <v-list-item-title>{{ providerId }}</v-list-item-title>
+              <v-list-item-title class="font-weight-medium">{{ providerId }}</v-list-item-title>
               <template #append>
                 <div class="d-flex ga-1">
                   <v-btn
@@ -84,16 +86,18 @@
                     icon="mdi-close"
                     size="x-small"
                     variant="text"
+                    color="error"
                     @click.stop="removeSelected(providerId)"
                   />
                 </div>
               </template>
             </v-list-item>
           </v-list>
-          <v-divider class="ma-1"></v-divider>
+          <v-divider class="my-3"></v-divider>
         </div>
         
-        <v-list v-if="!loading && providerList.length > 0" density="compact">
+        <!-- 分组模型列表 -->
+        <v-list v-if="!loading && providerList.length > 0" density="compact" class="pa-2">
           <!-- 不选择选项 -->
           <v-list-item
             v-if="!multiple"
@@ -101,51 +105,81 @@
             value=""
             @click="selectProvider({ id: '' })"
             :active="selectedProvider === ''"
-            rounded="md"
-            class="ma-1">
+            rounded="lg"
+            class="ma-1 mb-2">
+            <template v-slot:prepend>
+              <v-icon color="grey">mdi-selection-off</v-icon>
+            </template>
             <v-list-item-title>{{ tm('providerSelector.clearSelection') }}</v-list-item-title>
-            <v-list-item-subtitle>{{ tm('providerSelector.clearSelectionSubtitle') }}</v-list-item-subtitle>
-            
             <template v-slot:append>
               <v-icon v-if="selectedProvider === ''" color="primary">mdi-check-circle</v-icon>
             </template>
           </v-list-item>
-          
-          <v-divider class="ma-1"></v-divider>
-          
-          <v-list-item
-            v-for="provider in providerList"
-            :key="provider.id"
-            :value="provider.id"
-            @click="selectProvider(provider)"
-            :active="isProviderSelected(provider.id)"
-            rounded="md"
-            class="ma-1">
-            <v-list-item-title>{{ provider.id }}</v-list-item-title>
-            <v-list-item-subtitle>
-              {{ provider.type || provider.provider_type || tm('providerSelector.unknownType') }}
-              <span v-if="provider.model">- {{ provider.model }}</span>
-            </v-list-item-subtitle>
-            
-            <template v-slot:append>
-              <v-icon v-if="isProviderSelected(provider.id)" color="primary">mdi-check-circle</v-icon>
+
+          <!-- 循环分组 -->
+          <v-list-group 
+            v-for="group in groupedProviders" 
+            :key="group.name" 
+            :value="group.name"
+          >
+            <template v-slot:activator="{ props }">
+              <v-list-item v-bind="props" rounded="lg" class="ma-1">
+                <template v-slot:prepend>
+                  <v-avatar size="24" rounded="0" class="me-2">
+                    <v-img :src="getProviderIcon(group.providerId)" cover></v-img>
+                  </v-avatar>
+                </template>
+                <v-list-item-title class="font-weight-bold">
+                  {{ group.name }}
+                  <v-chip v-if="group.isRouter" size="x-small" color="primary" variant="flat" class="ms-2" label>ROUTER</v-chip>
+                </v-list-item-title>
+                <template v-slot:append>
+                  <v-chip size="x-small" variant="tonal">{{ group.items.length }}</v-chip>
+                </template>
+              </v-list-item>
             </template>
-          </v-list-item>
+
+            <!-- 分组内的模型项 -->
+            <v-list-item
+              v-for="provider in group.items"
+              :key="provider.id"
+              :value="provider.id"
+              @click="selectProvider(provider)"
+              :active="isProviderSelected(provider.id)"
+              rounded="lg"
+              class="ms-8 me-1 my-1"
+            >
+              <v-list-item-title>{{ provider.id }}</v-list-item-title>
+              <v-list-item-subtitle v-if="provider.model" class="text-caption">
+                {{ provider.model }}
+              </v-list-item-subtitle>
+              <template v-slot:append>
+                <v-icon v-if="isProviderSelected(provider.id)" color="primary">
+                  {{ multiple ? 'mdi-checkbox-marked' : 'mdi-check-circle' }}
+                </v-icon>
+                <v-icon v-else-if="multiple" color="grey-lighten-1">mdi-checkbox-blank-outline</v-icon>
+              </template>
+            </v-list-item>
+          </v-list-group>
         </v-list>
         
-        <div v-else-if="!loading && providerList.length === 0" class="text-center py-8">
-          <v-icon size="64" color="grey-lighten-1">mdi-api-off</v-icon>
-          <p class="text-grey mt-4">{{ tm('providerSelector.noProviders') }}</p>
+        <div v-else-if="!loading && providerList.length === 0" class="text-center py-12">
+          <v-icon size="80" color="grey-lighten-2">mdi-api-off</v-icon>
+          <p class="text-h4 text-grey-darken-1 mt-4">{{ tm('providerSelector.noProviders') }}</p>
+          <p class="text-body-2 text-grey mt-1">请先在模型枢纽中配置服务商</p>
         </div>
       </v-card-text>
       
       <v-divider></v-divider>
       
-      <v-card-actions class="pa-4">
+      <v-card-actions class="pa-4 px-6">
         <v-spacer></v-spacer>
-        <v-btn variant="text" @click="cancelSelection">{{ tm('providerSelector.cancelSelection') }}</v-btn>
+        <v-btn variant="text" rounded="xl" @click="cancelSelection">{{ tm('providerSelector.cancelSelection') }}</v-btn>
         <v-btn 
           color="primary" 
+          variant="flat"
+          rounded="xl"
+          class="px-6"
           @click="confirmSelection">
           {{ tm('providerSelector.confirmSelection') }}
         </v-btn>
@@ -163,10 +197,12 @@
   >
     <v-card class="provider-drawer-card" elevation="12">
       <div class="provider-drawer-header">
+        <div class="text-h3 font-weight-bold">模型枢纽</div>
         <v-btn icon variant="text" @click="closeProviderDrawer">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </div>
+      <v-divider></v-divider>
       <div class="provider-drawer-content">
         <ProviderPage :default-tab="defaultTab" />
       </div>
@@ -179,6 +215,7 @@ import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 import ProviderPage from '@/views/ProviderPage.vue'
+import { getProviderIcon } from '@/utils/providerUtils'
 
 const props = defineProps({
   modelValue: {
@@ -225,6 +262,35 @@ const defaultTab = computed(() => {
     return `select_agent_runner_provider:${props.providerSubtype}`
   }
   return props.providerType || 'chat_completion'
+})
+
+// 分组逻辑
+const groupedProviders = computed(() => {
+  const groups = {}
+  
+  providerList.value.forEach(item => {
+    // 识别 Router
+    const isRouter = item.type === 'model_router'
+    const providerId = isRouter ? 'model_router' : (item.provider || 'unknown')
+    const groupName = isRouter ? '模型路由 (Routers)' : (item.provider_display_name || providerId.toUpperCase())
+    
+    if (!groups[groupName]) {
+      groups[groupName] = {
+        name: groupName,
+        providerId: providerId,
+        isRouter: isRouter,
+        items: []
+      }
+    }
+    groups[groupName].items.push(item)
+  })
+
+  // 排序：Router 置顶，其余按名称字母排序
+  return Object.values(groups).sort((a, b) => {
+    if (a.isRouter) return -1
+    if (b.isRouter) return 1
+    return a.name.localeCompare(b.name)
+  })
 })
 
 // 监听 modelValue 变化，同步到 selectedProvider
@@ -372,28 +438,28 @@ function closeProviderDrawer() {
   white-space: nowrap;
   max-width: calc(100% - 80px);
   display: inline-block;
+  font-weight: 500;
 }
 
 .selected-preview {
   width: 100%;
-  max-width: 100%;
 }
 
 .selected-order-list {
-  background: rgba(var(--v-theme-surface-variant), 0.15);
-  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.03);
+  border-radius: 12px;
+}
+
+.shadow-sm {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .v-list-item {
   transition: all 0.2s ease;
 }
 
-.v-list-item:hover {
-  background-color: rgba(var(--v-theme-primary), 0.04);
-}
-
-.v-list-item.v-list-item--active {
-  background-color: rgba(var(--v-theme-primary), 0.08);
+.v-list-group :deep(.v-list-item--active) {
+  color: rgb(var(--v-theme-primary)) !important;
 }
 
 .provider-drawer-overlay {
@@ -402,9 +468,8 @@ function closeProviderDrawer() {
 }
 
 .provider-drawer-card {
-  width: clamp(360px, 70vw, 1200px);
-  height: calc(100vh - 32px);
-  margin: 16px;
+  width: clamp(400px, 80vw, 1400px);
+  height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -414,12 +479,13 @@ function closeProviderDrawer() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px 12px 20px;
+  padding: 20px 24px;
 }
 
 .provider-drawer-content {
   flex: 1;
   overflow: hidden;
+  background: rgb(var(--v-theme-background));
 }
 
 .provider-drawer-content > * {
