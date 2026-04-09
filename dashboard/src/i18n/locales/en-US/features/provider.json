@@ -1,152 +1,167 @@
 {
-  "title": "Providers",
-  "subtitle": "Can configure chat models in \"Chat Completion\". Additionally, \"Agent Runner\" includes integrations with third-party services like Dify, Coze, and Alibaba Bailian(DashScope).",
+  "title": "Model Hub",
+  "subtitle": "Unified management of all model providers, virtual routing groups, and related configurations. Supports load balancing and automatic failover.",
   "providers": {
-    "title": "Service Providers",
+    "title": "Model Providers",
     "settings": "Settings",
-    "addProvider": "Add Provider",
+    "addProvider": "Add Source",
     "providerType": "Provider Type",
     "tabs": {
       "all": "All",
       "chatCompletion": "Chat Completion",
+      "modelRouter": "Model Routers",
       "agentRunner": "Agent Runner",
-      "speechToText": "Speech to Text",
-      "textToSpeech": "Text to Speech",
+      "speechToText": "STT",
+      "textToSpeech": "TTS",
       "embedding": "Embedding",
       "rerank": "Rerank"
     },
     "empty": {
-      "all": "No service providers available, click Add Provider to add one",
-      "typed": "No {type} type service providers available, click Add Provider to add one"
+      "all": "No configurations yet, click Add to start",
+      "typed": "No configurations in {type} category"
     },
     "description": {
-      "openai": "Supports all OpenAI API compatible providers.",
+      "openai": "Also supports all OpenAI API compatible providers.",
       "kimi_code": "Dedicated Kimi CodingPlan / Kimi Code integration using a custom Anthropic API compatibility layer.",
+      "vllm_rerank": "Also supports Jina AI, Cohere, PPIO, etc.",
       "default": ""
     }
   },
   "availability": {
-    "title": "Provider Availability",
-    "subtitle": "Determined by testing model conversation availability, may incur API costs",
+    "title": "Availability Check",
+    "subtitle": "Determined by testing real-time connectivity, may incur minor costs",
     "refresh": "Refresh Status",
-    "noData": "Click \"Refresh Status\" button to get service provider availability",
-    "available": "Available",
-    "unavailable": "Unavailable",
-    "pending": "Pending...",
-    "errorMessage": "Error Message",
-    "test": "Test"
+    "noData": "Click button to check connectivity",
+    "available": "Healthy",
+    "unavailable": "Connection Failed",
+    "pending": "Checking...",
+    "errorMessage": "Error Reason",
+    "test": "Connectivity Test"
   },
   "logs": {
-    "title": "Service Logs",
+    "title": "Call Logs",
     "expand": "Expand",
     "collapse": "Collapse"
   },
   "dialogs": {
     "addProvider": {
-      "title": "Service Provider",
+      "title": "Add Model Source",
       "tabs": {
-        "basic": "Basic",
+        "basic": "Chat",
         "agentRunner": "Agent Runner",
-        "speechToText": "Speech to Text",
-        "textToSpeech": "Text to Speech",
+        "speechToText": "STT",
+        "textToSpeech": "TTS",
         "embedding": "Embedding",
         "rerank": "Rerank"
       },
-      "noTemplates": "No this type provider templates available"
+      "noTemplates": "No templates available"
     },
     "config": {
-      "addTitle": "Add",
-      "editTitle": "Edit",
-      "provider": "Service Provider",
+      "addTitle": "Add Config",
+      "editTitle": "Edit Config",
+      "provider": "Provider",
       "cancel": "Cancel",
       "save": "Save"
     },
     "settings": {
-      "title": "Service Provider Settings",
+      "title": "Hub Global Settings",
       "sessionSeparation": {
-        "title": "Enable Provider Session Isolation",
-        "description": "Different sessions can independently select text generation, TTS, STT and other service providers."
+        "title": "Session-level Isolation",
+        "description": "When enabled, each independent session can separately specify its model group."
       },
       "close": "Close"
     }
   },
   "messages": {
     "success": {
-      "update": "Updated successfully!",
-      "add": "Added successfully!",
-      "delete": "Deleted successfully!",
-      "statusUpdate": "Status updated successfully!",
-      "sessionSeparation": "Session isolation settings updated"
+      "update": "Configuration updated",
+      "add": "Created successfully",
+      "delete": "Removed",
+      "statusUpdate": "Status refreshed",
+      "sessionSeparation": "Isolation settings applied"
     },
     "error": {
-      "sessionSeparation": "Failed to get session isolation configuration",
-      "fetchStatus": "Failed to get service provider status",
+      "sessionSeparation": "Failed to save isolation settings",
+      "fetchStatus": "Failed to fetch status",
       "testError": "Test failed for {id}: {error}"
     },
     "confirm": {
-      "delete": "Are you sure you want to delete service provider {id}?"
+      "delete": "Are you sure you want to permanently remove model source {id}?"
     }
   },
   "providerTypes": {
-    "title": "Provider Types"
+    "title": "Provider Categories"
   },
   "providerSources": {
-    "title": "Provider Sources",
+    "title": "Sources",
     "add": "Add",
-    "empty": "No provider sources",
-    "selectHint": "Please select a provider source",
-    "selectCreated": "Select created provider source",
-    "save": "Save Configuration",
-    "saveAndFetchModels": "Save and Fetch Models",
-    "fetchModels": "Fetch Model List",
-    "saveSuccess": "Provider source saved successfully",
-    "saveError": "Failed to save provider source",
-    "deleteConfirm": "Are you sure you want to delete provider source {id}? This will also delete all associated model configurations.",
-    "deleteSuccess": "Provider source deleted successfully",
-    "deleteError": "Failed to delete provider source",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
-    "advancedConfig": "Advanced Configuration...",
+    "empty": "No sources added yet",
+    "selectHint": "Select or create a source from the left list to configure",
+    "selectCreated": "Select existing source",
+    "save": "Save Changes",
+    "saveAndFetchModels": "Save & Sync Models",
+    "fetchModels": "Sync Available Models",
+    "saveSuccess": "Saved successfully",
+    "saveError": "Failed to save",
+    "deleteConfirm": "Are you sure you want to delete source {id}? All associated models will be removed.",
+    "deleteSuccess": "Source removed",
+    "deleteError": "Removal failed",
+    "enabled": "Running",
+    "disabled": "Suspended",
+    "advancedConfig": "Advanced Parameter Mapping",
     "fields": {
-      "name": "Name",
+      "name": "Display Name",
       "apiKey": "API Key",
       "baseUrl": "Base URL"
     },
     "hints": {
-      "id": "Provider source ID (not provider ID)",
-      "key": "API key for authentication",
-      "apiBase": "Custom API endpoint URL",
-      "proxy": "HTTP/HTTPS proxy address, e.g. http://127.0.0.1:7890. Only affects this provider's API requests, doesn't interfere with Docker internal networking."
+      "id": "Unique identifier in system, frequent changes not recommended",
+      "key": "API Key required for access",
+      "apiBase": "Custom proxy or provider endpoint address",
+      "proxy": "HTTP Proxy (e.g. http://127.0.0.1:7890), only used for requests from this source."
     },
     "labels": {
-      "proxy": "Proxy"
+      "proxy": "Network Proxy"
     }
   },
   "models": {
-    "available": "Available Models",
-    "configured": "Configured Models",
-    "empty": "No configured models yet. Click \"Fetch Models\" above to add.",
-    "noModelsFound": "No available models found",
-    "fetchError": "Failed to fetch models",
-    "addSuccess": "Model {model} added successfully",
-    "deleteConfirm": "Are you sure you want to delete model {id}?",
-    "deleteSuccess": "Model deleted successfully",
-    "deleteError": "Failed to delete model",
-    "testSuccess": "Model {id} test passed",
-    "testSuccessWithLatency": "Model {id} test passed, latency {latency} ms",
-    "testError": "Model test failed",
-    "searchPlaceholder": "Search models or ID",
-    "manualAddButton": "Custom Model",
-    "manualDialogTitle": "Add Custom Model",
-    "manualDialogModelLabel": "Model ID (e.g. gpt-4.1-mini)",
-    "manualDialogPreviewLabel": "Display ID (auto generated)",
-    "manualDialogPreviewHint": "Generated as sourceId/modelId",
-    "manualModelRequired": "Please enter a model ID",
-    "manualModelExists": "Model already exists",
-    "configure": "Configure",
+    "available": "Syncable Models",
+    "configured": "Managed Model List",
+    "empty": "No models available under current source, please try syncing.",
+    "noModelsFound": "No compatible models found",
+    "fetchError": "Sync failed",
+    "addSuccess": "Model {model} is now online",
+    "deleteConfirm": "Are you sure you want to take model instance {id} offline?",
+    "deleteSuccess": "Model removed",
+    "deleteError": "Removal failed",
+    "testSuccess": "Connectivity good",
+    "testSuccessWithLatency": "Connectivity good (Latency: {latency}ms)",
+    "testError": "Test failed",
+    "searchPlaceholder": "Search configured models...",
+    "manualAddButton": "Manually Add Model",
+    "manualDialogTitle": "Add Unlisted Model",
+    "manualDialogModelLabel": "Original Model Name (e.g. gpt-4o-mini)",
+    "manualDialogPreviewLabel": "Internal System ID (Preview)",
+    "manualDialogPreviewHint": "Format usually: sourceId/modelName",
+    "manualModelRequired": "Model name cannot be empty",
+    "manualModelExists": "Model definition already exists",
+    "configure": "Fine-tuning",
     "tooltips": {
       "providerId": "Provider ID",
-      "modelId": "Model ID"
+      "modelId": "Original Model ID"
+    }
+  },
+  "routers": {
+    "title": "Router Config",
+    "activeCount": "{count} models active",
+    "strategy": "Scheduling Strategy",
+    "modelList": "Model Pool (Sorted by Priority)",
+    "priority": "Priority",
+    "strategies": {
+      "priority": "Priority-Based Fallback",
+      "shuffle": "Simple Shuffle (Load Balanced)",
+      "leastBusy": "Least Busy Priority",
+      "latency": "Latency-Based Routing"
     }
   }
 }

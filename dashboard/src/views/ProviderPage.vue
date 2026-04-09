@@ -156,31 +156,6 @@
 
                       <!-- 特殊：模型路由配置 -->
                       <template v-if="selectedProviderType === 'routers'">
-                        <!-- 模型列表选择 -->
-                        <v-row class="config-row">
-                          <v-col cols="12" sm="6" class="property-info">
-                            <v-list-item density="compact">
-                              <v-list-item-title class="property-name">参与路由的模型</v-list-item-title>
-                              <v-list-item-subtitle class="property-hint">选择要纳入该路由组的模型</v-list-item-subtitle>
-                            </v-list-item>
-                          </v-col>
-                          <v-col cols="12" sm="6" class="config-input">
-                            <v-select
-                              v-model="editableProviderSource.model_list"
-                              :items="allCompletionModels"
-                              item-title="id"
-                              item-value="id"
-                              multiple
-                              chips
-                              variant="outlined"
-                              density="compact"
-                              hide-details
-                              placeholder="选择模型..."
-                            ></v-select>
-                          </v-col>
-                        </v-row>
-                        <v-divider class="config-divider"></v-divider>
-                        
                         <!-- 路由策略 -->
                         <v-row class="config-row">
                           <v-col cols="12" sm="6" class="property-info">
@@ -193,6 +168,7 @@
                             <v-select
                               v-model="editableProviderSource.routing_strategy"
                               :items="[
+                                {title: '优先级 (Priority-Based Fallover)', value: 'priority-based'},
                                 {title: '轮询 (Simple Shuffle)', value: 'simple-shuffle'},
                                 {title: '最少忙碌 (Least Busy)', value: 'least-busy'},
                                 {title: '最低延迟 (Latency Based)', value: 'latency-based-routing'}
@@ -203,6 +179,69 @@
                             ></v-select>
                           </v-col>
                         </v-row>
+                        <v-divider class="config-divider"></v-divider>
+
+                        <!-- 参与路由的模型列表 (新样式 + 动画) -->
+                        <div class="pa-4">
+                          <div class="d-flex align-center justify-space-between mb-4">
+                            <div class="text-subtitle-1 font-weight-bold">参与路由的模型组 (按优先级排序)</div>
+                            <v-chip size="small" color="primary" variant="tonal">{{ activeRouterModelsCount }} 个激活</v-chip>
+                          </div>
+                          
+                          <div class="router-model-list-container border rounded-lg overflow-hidden">
+                            <transition-group name="flip-list" tag="div" class="v-list v-list--density-compact v-theme--light">
+                              <template v-for="(model, index) in allCompletionModels" :key="model.id">
+                                <v-list-item class="px-4 py-2 router-item" :class="{'bg-active-light': isModelInRouter(model.id)}">
+                                  <template v-slot:prepend>
+                                    <v-avatar size="32" rounded="0" class="me-3">
+                                      <v-img :src="getProviderIcon(model.provider)" cover></v-img>
+                                    </v-avatar>
+                                    <div>
+                                      <div class="text-body-1 font-weight-bold">{{ model.id }}</div>
+                                      <div class="text-caption text-medium-emphasis">{{ model.model }}</div>
+                                    </div>
+                                  </template>
+
+                                  <template v-slot:append>
+                                    <div class="d-flex align-center ga-4">
+                                      <!-- 优先级步进器 UI -->
+                                      <div class="priority-stepper d-flex align-center" v-if="isModelInRouter(model.id)">
+                                        <v-btn 
+                                          icon="mdi-minus" 
+                                          size="x-small" 
+                                          variant="flat" 
+                                          class="stepper-btn"
+                                          @click="adjustPriority(model.id, -1)"
+                                        ></v-btn>
+                                        <div class="priority-display d-flex flex-column align-center">
+                                          <span class="priority-val">{{ getModelPriority(model.id) }}</span>
+                                          <span class="priority-label">PRIO</span>
+                                        </div>
+                                        <v-btn 
+                                          icon="mdi-plus" 
+                                          size="x-small" 
+                                          variant="flat" 
+                                          class="stepper-btn"
+                                          @click="adjustPriority(model.id, 1)"
+                                        ></v-btn>
+                                      </div>
+
+                                      <v-switch
+                                        :model-value="isModelInRouter(model.id)"
+                                        density="compact"
+                                        inset
+                                        hide-details
+                                        color="primary"
+                                        @update:model-value="toggleModelInRouter(model.id, $event)"
+                                      ></v-switch>
+                                    </div>
+                                  </template>
+                                </v-list-item>
+                                <v-divider v-if="index !== allCompletionModels.length - 1" :key="'div-' + model.id"></v-divider>
+                              </template>
+                            </transition-group>
+                          </div>
+                        </div>
                       </template>
 
                       <!-- 使用 AstrBotConfig 渲染 Key, API Base 等 -->
@@ -317,15 +356,15 @@
         </v-card-text>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="showManualModelDialog = false" rounded="xl">取消</v-btn>
-          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="xl">添加</v-btn>
+          <v-btn variant="text" @click="showManualModelDialog = false" rounded="lg">取消</v-btn>
+          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="lg">添加</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- 已配置模型编辑对话框 -->
     <v-dialog v-model="showProviderEditDialog" width="800">
-      <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')" rounded="xl">
+      <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')" rounded="lg">
         <v-card-text class="py-4">
           <v-alert type="warning" variant="tonal" class="mb-4" density="compact">
             不建议修改 ID，可能会导致指向该模型的相关配置失效。
@@ -341,11 +380,11 @@
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="showProviderEditDialog = false"
-            :disabled="savingProviders.includes(providerEditData?.id)" rounded="xl">
+            :disabled="savingProviders.includes(providerEditData?.id)" rounded="lg">
             {{ tm('dialogs.config.cancel') }}
           </v-btn>
           <v-btn color="primary" @click="saveEditedProvider" 
-            :loading="savingProviders.includes(providerEditData?.id)" variant="flat" rounded="xl">
+            :loading="savingProviders.includes(providerEditData?.id)" variant="flat" rounded="lg">
             {{ tm('dialogs.config.save') }}
           </v-btn>
         </v-card-actions>
@@ -470,12 +509,90 @@ const availableProviders = computed(() => {
     .sort((a, b) => a.label.localeCompare(b.label)) // 增加首字母排序
 })
 
-// 用于模型路由的模型列表：只显示 completions 类型的已配置模型
+// 用于模型路由的模型列表
 const providerList = ref([])
 const allCompletionModels = computed(() => {
   if (!providerList.value) return []
-  return providerList.value.filter(p => p.provider_type === 'chat_completion')
+  
+  // 给原始列表加个索引，方便稳定排序
+  const indexedModels = providerList.value.map((p, idx) => ({ ...p, originalIndex: idx }))
+  
+  // 过滤掉当前的 router 本身，防止循环引用
+  const models = indexedModels.filter(p => p.provider_type === 'chat_completion' && p.id !== editableProviderSource.value?.id)
+  
+  // 核心逻辑：自动排序 (三级排序)
+  return [...models].sort((a, b) => {
+    const inA = isModelInRouter(a.id)
+    const inB = isModelInRouter(b.id)
+    
+    // 1. 状态比较
+    if (inA && !inB) return -1
+    if (!inA && inB) return 1
+    
+    // 2. 状态相同时
+    if (inA && inB) {
+      const diff = getModelPriority(a.id) - getModelPriority(b.id)
+      if (diff !== 0) return diff // 优先级不同按优先级
+      return a.originalIndex - b.originalIndex // 优先级相同保持原始顺序
+    }
+    
+    // 3. 均未激活时按原始顺序
+    return a.originalIndex - b.originalIndex
+  })
 })
+
+const activeRouterModelsCount = computed(() => {
+  if (!editableProviderSource.value?.model_list) return 0
+  return editableProviderSource.value.model_list.length
+})
+
+function isModelInRouter(modelId) {
+  const list = editableProviderSource.value?.model_list || []
+  return list.some(item => (typeof item === 'string' ? item === modelId : item.id === modelId))
+}
+
+function getModelPriority(modelId) {
+  const list = editableProviderSource.value?.model_list || []
+  const found = list.find(item => (typeof item === 'object' && item.id === modelId))
+  return found ? (found.priority || 0) : 0
+}
+
+function adjustPriority(modelId, delta) {
+  if (!editableProviderSource.value.model_list) {
+    editableProviderSource.value.model_list = []
+  }
+  const list = editableProviderSource.value.model_list
+  const idx = list.findIndex(item => (typeof item === 'string' ? item === modelId : item.id === modelId))
+  
+  if (idx !== -1) {
+    let item = list[idx]
+    if (typeof item === 'string') {
+      item = { id: item, priority: 0 }
+    }
+    item.priority = Math.max(0, (item.priority || 0) + delta)
+    list[idx] = item
+    isSourceModified.value = true
+  }
+}
+
+function toggleModelInRouter(modelId, enabled) {
+  if (!editableProviderSource.value.model_list) {
+    editableProviderSource.value.model_list = []
+  }
+  const list = editableProviderSource.value.model_list
+  
+  if (enabled) {
+    if (!isModelInRouter(modelId)) {
+      list.push({ id: modelId, priority: 0 })
+    }
+  } else {
+    const idx = list.findIndex(item => (typeof item === 'string' ? item === modelId : item.id === modelId))
+    if (idx !== -1) {
+      list.splice(idx, 1)
+    }
+  }
+  isSourceModified.value = true
+}
 
 onMounted(async () => {
     try {
@@ -685,6 +802,72 @@ watch(() => props.defaultTab, (val) => {
   justify-content: center;
   color: var(--provider-muted);
   text-align: center;
+}
+
+.router-model-list-container {
+  background: rgb(var(--v-theme-surface));
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bg-active-light {
+  background-color: rgba(var(--v-theme-primary), 0.04);
+}
+
+.router-item {
+  transition: all 0.3s ease;
+}
+
+/* 优先级步进器样式 */
+.priority-stepper {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  border-radius: 12px;
+  padding: 2px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.stepper-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  background: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+.priority-display {
+  padding: 0 10px;
+  min-width: 40px;
+}
+
+.priority-val {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 800;
+  color: rgb(var(--v-theme-primary));
+}
+
+.priority-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--provider-muted);
+  letter-spacing: 0.05em;
+}
+
+/* FLIP 动画样式 */
+.flip-list-move {
+  transition: transform 0.5s ease;
+}
+
+.flip-list-enter-active,
+.flip-list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.flip-list-enter-from,
+.flip-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 
 /* Replicating AstrBotConfig styles */

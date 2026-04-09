@@ -1,14 +1,15 @@
 {
-  "title": "模型提供商",
-  "subtitle": "可以在“对话”中配置对话模型。此外，“Agent 执行器”包含了 Dify、Coze、阿里云百炼应用等第三方服务的集成。",
+  "title": "模型管理",
+  "subtitle": "统一管理所有模型供应商、虚拟路由组及相关配置。支持负载均衡与自动故障转移。",
   "providers": {
     "title": "模型提供商",
     "settings": "设置",
-    "addProvider": "新增模型提供商",
+    "addProvider": "新增提供商源",
     "providerType": "提供商类型",
     "tabs": {
       "all": "全部",
       "chatCompletion": "对话",
+      "modelRouter": "模型路由",
       "agentRunner": "Agent 执行器",
       "speechToText": "语音转文字",
       "textToSpeech": "文字转语音",
@@ -16,8 +17,8 @@
       "rerank": "重排序(Rerank)"
     },
     "empty": {
-      "all": "暂无模型提供商，点击 新增模型提供商 添加",
-      "typed": "暂无{type}类型的模型提供商，点击 新增模型提供商 添加"
+      "all": "暂无配置，点击新增开始",
+      "typed": "暂无 {type} 分类的配置"
     },
     "description": {
       "openai": "也支持所有兼容 OpenAI API 的模型提供商。",
@@ -27,24 +28,24 @@
     }
   },
   "availability": {
-    "title": "模型提供商可用性",
-    "subtitle": "通过测试模型对话可用性判断，可能产生API费用",
+    "title": "可用性检查",
+    "subtitle": "通过实测对话连通性判断，可能产生少量费用",
     "refresh": "刷新状态",
-    "noData": "点击\"刷新状态\"按钮获取模型提供商可用性",
-    "available": "可用",
-    "unavailable": "不可用",
+    "noData": "点击按钮检查连通性",
+    "available": "正常",
+    "unavailable": "连接失败",
     "pending": "检查中...",
-    "errorMessage": "错误信息",
-    "test": "测试"
+    "errorMessage": "错误原因",
+    "test": "连接测试"
   },
   "logs": {
-    "title": "服务日志",
+    "title": "调用日志",
     "expand": "展开",
     "collapse": "收起"
   },
   "dialogs": {
     "addProvider": {
-      "title": "模型提供商",
+      "title": "新增模型源",
       "tabs": {
         "basic": "对话",
         "agentRunner": "Agent 执行器",
@@ -56,9 +57,9 @@
       "noTemplates": "暂无该类型的提供商模板"
     },
     "config": {
-      "addTitle": "新增",
-      "editTitle": "编辑",
-      "provider": "模型提供商",
+      "addTitle": "新增配置",
+      "editTitle": "编辑配置",
+      "provider": "供应商",
       "cancel": "取消",
       "save": "保存"
     },
@@ -148,6 +149,19 @@
     "tooltips": {
       "providerId": "提供商 ID",
       "modelId": "模型 ID"
+    }
+  },
+  "routers": {
+    "title": "路由组配置",
+    "activeCount": "{count} 个模型已激活",
+    "strategy": "调度策略",
+    "modelList": "参与调度的模型池 (按优先级排列)",
+    "priority": "优先级",
+    "strategies": {
+      "priority": "优先级故障转移 (Priority-Based)",
+      "shuffle": "随机负载均衡 (Simple Shuffle)",
+      "leastBusy": "最少忙碌优先 (Least Busy)",
+      "latency": "低延迟动态路由 (Latency Based)"
     }
   }
 }

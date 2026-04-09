@@ -15,16 +15,28 @@
 
 另外，原来这个页面下面的平台日志扔了，这部分多余了
 # 智能核心 (Agent core)
-## 模型管理 (Model Hub)
-这里使用LiteLLM SDK作为内部实际逻辑，不使用LiteLLM[proxy],但是其webui逻辑可参考其实现进行优化
-在LiteLLM[proxy]中，一个模型会有mode参数。包含 completions audio/transcriptions audio/speech rerank embeddings 等等类型，可以用这个作为 `Type 标签页`，就和原来的 `ProviderPage.vue` 那里一样
-原来的ProviderPage的面板排布其实和目标差不多，但是区别在于，多出来了Agent执行器这个标签页，这个需要挪走
-另外，只有对话页（对应 completions）是采用的我们要求的 `左侧列表 + 右侧上下卡片布局` 其他的如语音转文字页（对应audio/transcriptions）都是卡片布局，这个我觉得需要和对话页进行统一
-还有，原来的对话页也要进行调整，原来的是在提供商源处，有一个新增按钮（`providerSources.add`），按下弹出一个列表，用于选定Provider，随后右侧卡片的可填写的选项项目数量被固定，不再变动，我认为这很不方便
-Provider的选定应该放在右侧卡片而不是弹出列表，将Provider的选择做成下拉菜单，然后Provider与API KEY、API Base URL等参数齐列出
-另外原有的一些高级配置参数应当移植过来，比如使用gemini的api时会出现高级配置`安全过滤器`，这很实用可以保留
-卡片的其他ui和原有的保持，如`已配置的模型`卡片等，都可以用原来的设计逻辑
-模型可以配置标签(TAG)，再加入自动路由的功能，可以配置模型组自动路由，即失败重试
+
+## 模型管理 (Model Hub) ✅
+
+这里使用LiteLLM SDK作为内部实际逻辑，不使用LiteLLM [proxy]，但是其webui逻辑可参考其实现进行优化。
+
+在LiteLLM [proxy]中，一个模型会有mode参数。包含 completions、audio/transcriptions、audio/speech、rerank、embeddings 等等类型，可以用这个作为 `Type 标签页`，就和原来的 `ProviderPage.vue` 那里一样。
+
+原来的ProviderPage的面板排布其实和目标差不多，但是区别在于多出来了Agent执行器这个标签页，这个需要挪走。
+
+另外，只有对话页（对应 completions）是采用的我们要求的 `左侧列表 + 右侧上下卡片布局`，其他的如语音转文字页（对应audio/transcriptions）都是卡片布局，这个需要和对话页进行统一。
+
+原来的对话页也要进行调整：
+- Provider的选定应该放在右侧卡片而不是弹出列表，将Provider的选择做成下拉菜单
+- Provider与API KEY、API Base URL等参数齐列出
+- 原有的高级配置参数应当移植过来，比如使用gemini的api时出现的高级配置`安全过滤器`
+
+卡片的其他UI和原有的保持，如`已配置的模型`卡片等，都可以用原来的设计逻辑。
+
+模型可以配置标签(TAG)，并加入自动路由的功能，可以配置模型组自动路由，即失败重试。
+
+**Status: ✅ 已完成 (Completed)**
+
 ## 智能体管理 (agent)
 原来的人格设定加强版，但是需要文件夹系统用于智能体分类，ui可以参考前面的`左侧列表 + 右侧上下卡片布局`，但是记得做窄一点避免遮挡配置，也可以参考现有的`子代理编排`。
 包含了更符合agent要求的配置，如工具列表，mcp列表，skill列表，启用的人格，不同的模块选用的模型等等内容，相当于可以在这里选择用各个部分拼装出一个完整的agent（感觉就是现在的子代理编排）
@@ -42,13 +54,13 @@ agent的关系结构管理，比如将subagent分配给哪几个主agent
 ## 长期记忆
 管理记忆的数据库，可以开多个给人格用
 可以手动修改条目
-## 技能工具 (Toolbox)
-### MCP
-### skills
-### 知识库
-### 函数工具管理
+# 技能工具 (Toolbox)
+## MCP
+## skills
+## 知识库
+## 函数工具管理
 这个是原来的管理行为下的函数工具选项卡，直接拆过来用
-### 沙盒管理
+## 沙盒管理
 这个是从普通配置里拆出来的，但是我觉得沙盒可以有多个，有可能要用多个Shipyard Neo(Bay)，所以统一在这一页创建，这个管理页面可以延续之前的卡片布局
 之后要用沙盒，在配置里直接给一个沙盒列表就可以了，不用填写url什么的
 # 插件
