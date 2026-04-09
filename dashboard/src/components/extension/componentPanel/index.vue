@@ -33,14 +33,18 @@ import DetailsDialog from './components/DetailsDialog.vue';
 import type { CommandItem, ToolItem } from './types';
 
 defineOptions({ name: 'ComponentPanel' });
-const props = withDefaults(defineProps<{ active?: boolean }>(), {
-  active: true
+const props = withDefaults(defineProps<{ 
+  active?: boolean,
+  mode?: 'commands' | 'tools'
+}>(), {
+  active: true,
+  mode: 'commands'
 });
 
 const { tm } = useModuleI18n('features/command');
 const { tm: tmTool } = useModuleI18n('features/tooluse');
 
-const viewMode = ref<'commands' | 'tools'>('commands');
+const viewMode = ref<'commands' | 'tools'>(props.mode);
 const toolSearch = ref('');
 
 // 数据管理

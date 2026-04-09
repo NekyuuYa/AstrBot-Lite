@@ -30,6 +30,7 @@
               <ProviderSourcesPanel
                 :displayed-provider-sources="displayedProviderSources"
                 :selected-provider-source="selectedProviderSource"
+                :selected-provider-type="selectedProviderType"
                 :available-source-types="availableSourceTypes"
                 :tm="tm"
                 :resolve-source-icon="resolveSourceIcon"
@@ -136,7 +137,7 @@
                               ID <span class="property-key">(id)</span>
                             </v-list-item-title>
                             <v-list-item-subtitle class="property-hint">
-                              该提供商源的唯一标识符
+                              {{ selectedProviderType === 'routers' ? '该路由的唯一标识符' : '该提供商源的唯一标识符' }}
                             </v-list-item-subtitle>
                           </v-list-item>
                         </v-col>

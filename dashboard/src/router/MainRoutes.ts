@@ -19,14 +19,28 @@ const MainRoutes = {
       component: () => import('@/views/WelcomePage.vue')
     },
     {
-      name: EXTENSION_ROUTE_NAME,
-      path: '/extension',
-      component: () => import('@/views/ExtensionPage.vue')
+      name: 'InstalledPlugins',
+      path: '/extension/installed',
+      component: () => import('@/views/extension/InstalledPluginsPage.vue')
     },
     {
       name: 'ExtensionMarketplace',
-      path: '/extension-marketplace',
-      component: () => import('@/views/ExtensionPage.vue')
+      path: '/extension/market',
+      component: () => import('@/views/extension/MarketPluginsPage.vue')
+    },
+    {
+      name: 'McpServers',
+      path: '/mcp',
+      component: () => import('@/views/extension/McpPage.vue')
+    },
+    {
+      name: 'Skills',
+      path: '/skills',
+      component: () => import('@/views/extension/SkillsPage.vue')
+    },
+    {
+      path: '/extension',
+      redirect: '/extension/installed'
     },
     {
       name: 'Platforms',
@@ -70,6 +84,16 @@ const MainRoutes = {
       name: 'Persona',
       path: '/persona',
       component: () => import('@/views/PersonaPage.vue')
+    },
+    {
+      name: 'Commands',
+      path: '/commands',
+      component: () => import('@/views/CommandPage.vue')
+    },
+    {
+      name: 'Tools',
+      path: '/tools',
+      component: () => import('@/views/ToolPage.vue')
     },
     {
       name: 'SubAgent',

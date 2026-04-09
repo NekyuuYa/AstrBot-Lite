@@ -34,6 +34,12 @@ const sidebarItem: menu[] = [
   },
 
   {
+    title: 'core.navigation.commands',
+    icon: 'mdi-wrench',
+    to: '/commands',
+  },
+
+  {
     title: 'core.navigation.headers.agent',
     icon: 'mdi-brain',
     children: [
@@ -60,19 +66,19 @@ const sidebarItem: menu[] = [
     icon: 'mdi-toolbox',
     children: [
       {
+        title: 'features.tooluse.functionTools.title',
+        icon: 'mdi-function-variant',
+        to: '/tools'
+      },
+      {
         title: 'core.navigation.toolbox.mcp',
         icon: 'mdi-server-network',
-        to: '/extension#mcp'
+        to: '/mcp'
       },
       {
         title: 'core.navigation.toolbox.skills',
         icon: 'mdi-lightning-bolt',
-        to: '/extension#skills'
-      },
-      {
-        title: 'core.navigation.toolbox.components',
-        icon: 'mdi-wrench',
-        to: '/extension#components'
+        to: '/skills'
       },
       {
         title: 'core.navigation.toolbox.knowledgeBase',
@@ -89,12 +95,12 @@ const sidebarItem: menu[] = [
       {
         title: 'core.navigation.plugins.installed',
         icon: 'mdi-puzzle',
-        to: '/extension#installed'
+        to: '/extension/installed'
       },
       {
         title: 'core.navigation.plugins.market',
         icon: 'mdi-store',
-        to: '/extension#market'
+        to: '/extension/market'
       }
     ]
   },
