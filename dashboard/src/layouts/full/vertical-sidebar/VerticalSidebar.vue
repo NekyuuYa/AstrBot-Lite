@@ -420,4 +420,19 @@ function openChangelogDialog() {
 .leftSidebar .v-navigation-drawer__content {
   position: relative;
 }
+
+.sidebar-header-text {
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-weight: 700;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.header-prefix {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 900;
+  margin-right: 4px;
+}
 </style>

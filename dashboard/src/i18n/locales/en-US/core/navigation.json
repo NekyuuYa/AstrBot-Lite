@@ -1,49 +1,58 @@
 {
+  "headers": {
+    "welcome": "Welcome",
+    "status": "Status",
+    "instances": "Instances",
+    "agent": "Agent Core",
+    "toolbox": "Toolbox",
+    "analysis": "Analysis"
+  },
   "welcome": "Welcome",
-  "dashboard": "Dashboard",
-  "platforms": "Platforms",
-  "providers": "Providers",
+  "dashboard": "Overview",
+  "platforms": "Instances",
+  "providers": "Model Hub",
   "commands": "Commands",
   "persona": "Persona",
-  "subagent": "SubAgents",
-  "toolUse": "MCP Tools",
+  "subagent": "Sub-Agent",
+  "toolUse": "MCP",
+  "extension": "Extensions",
+  "extensionTabs": {
+    "installed": "Installed",
+    "market": "Market",
+    "mcp": "MCP Services",
+    "skills": "Skills",
+    "components": "Components"
+  },
   "config": "Config",
   "chat": "Chat",
   "cron": "Future Tasks",
-  "extension": "Extensions",
-  "extensionTabs": {
-    "installed": "AstrBot Plugins",
-    "market": "Plugin Market",
-    "mcp": "MCP Servers",
-    "skills": "Skills",
-    "components": "Handlers"
-  },
-  "conversation": "Conversations",
-  "sessionManagement": "Custom Rules",
-  "console": "Console",
+  "conversation": "Conversation Data",
+  "sessionManagement": "Session Management",
+  "console": "Platform Logs",
   "trace": "Trace",
-  "alkaid": "Alkaid Lab",
-  "knowledgeBase": "Knowledge Base",
+  "alkaid": "Alkaid",
+  "knowledgeBase": "Knowledge Base (RAG)",
   "about": "About",
   "settings": "Settings",
   "changelog": "Changelog",
-  "documentation": "Documentation",
+  "documentation": "Docs",
   "faq": "FAQ",
   "github": "GitHub",
   "drag": "Drag",
+  "costAnalysis": "Cost Analysis",
   "groups": {
-    "more": "More Features"
+    "more": "More"
   },
   "changelogDialog": {
     "title": "Changelog",
     "loading": "Loading...",
     "error": "Failed to load",
-    "notFound": "Changelog for this version not found",
+    "notFound": "Changelog not found",
     "selectVersion": "Select Version",
     "current": "Current"
   },
   "configTabs": {
-    "normal": "Normal Config",
-    "system": "System Config"
+    "normal": "Normal",
+    "system": "System"
   }
 }

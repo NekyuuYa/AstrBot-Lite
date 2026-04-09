@@ -528,10 +528,6 @@
   content: "\F02A4";
 }
 
-.mdi-grain::before {
-  content: "\F0D7C";
-}
-
 .mdi-hand-heart::before {
   content: "\F10F1";
 }
@@ -692,6 +688,10 @@
   content: "\F0375";
 }
 
+.mdi-monitor-dashboard::before {
+  content: "\F0A07";
+}
+
 .mdi-music-note-outline::before {
   content: "\F0F74";
 }
@@ -758,10 +758,6 @@
 
 .mdi-pencil-plus::before {
   content: "\F0DEB";
-}
-
-.mdi-pencil-ruler::before {
-  content: "\F1353";
 }
 
 .mdi-phone-in-talk::before {
@@ -982,6 +978,10 @@
 
 .mdi-timer-outline::before {
   content: "\F051B";
+}
+
+.mdi-toolbox::before {
+  content: "\F09AC";
 }
 
 .mdi-tools::before {
