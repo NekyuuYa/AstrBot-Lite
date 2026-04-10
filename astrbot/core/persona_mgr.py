@@ -139,19 +139,13 @@ class PersonaManager:
         persona_id: str,
         system_prompt: str | None = None,
         begin_dialogs: list[str] | None = None,
-        tools: list[str] | None | object = NOT_GIVEN,
-        skills: list[str] | None | object = NOT_GIVEN,
         custom_error_message: str | None | object = NOT_GIVEN,
     ):
-        """更新指定 persona 的信息。tools 参数为 None 时表示使用所有工具，空列表表示不使用任何工具"""
+        """更新指定 persona 的信息。"""
         existing_persona = await self.db.get_persona_by_id(persona_id)
         if not existing_persona:
             raise ValueError(f"Persona with ID {persona_id} does not exist.")
         update_kwargs = {}
-        if tools is not NOT_GIVEN:
-            update_kwargs["tools"] = tools
-        if skills is not NOT_GIVEN:
-            update_kwargs["skills"] = skills
         if custom_error_message is not NOT_GIVEN:
             update_kwargs["custom_error_message"] = custom_error_message
 
@@ -317,8 +311,6 @@ class PersonaManager:
         persona_id: str,
         system_prompt: str,
         begin_dialogs: list[str] | None = None,
-        tools: list[str] | None = None,
-        skills: list[str] | None = None,
         custom_error_message: str | None = None,
         folder_id: str | None = None,
         sort_order: int = 0,
@@ -329,8 +321,7 @@ class PersonaManager:
             persona_id: Persona 唯一标识
             system_prompt: 系统提示词
             begin_dialogs: 预设对话列表
-            tools: 工具列表，None 表示使用所有工具，空列表表示不使用任何工具
-            skills: Skills 列表，None 表示使用所有 Skills，空列表表示不使用任何 Skills
+            custom_error_message: 可选的自定义报错回复信息
             folder_id: 所属文件夹 ID，None 表示根目录
             sort_order: 排序顺序
         """
@@ -340,8 +331,6 @@ class PersonaManager:
             persona_id,
             system_prompt,
             begin_dialogs,
-            tools=tools,
-            skills=skills,
             custom_error_message=custom_error_message,
             folder_id=folder_id,
             sort_order=sort_order,
@@ -367,8 +356,8 @@ class PersonaManager:
                 "name": persona.persona_id,
                 "begin_dialogs": persona.begin_dialogs or [],
                 "mood_imitation_dialogs": [],  # deprecated
-                "tools": persona.tools,
-                "skills": persona.skills,
+                "tools": None,
+                "skills": None,
                 "custom_error_message": persona.custom_error_message,
             }
             for persona in self.personas
@@ -424,8 +413,6 @@ class PersonaManager:
             persona_id=selected_default_persona["name"],
             system_prompt=selected_default_persona["prompt"],
             begin_dialogs=selected_default_persona["begin_dialogs"],
-            tools=selected_default_persona["tools"] or None,
-            skills=selected_default_persona["skills"] or None,
             custom_error_message=selected_default_persona["custom_error_message"],
         )
 

@@ -148,10 +148,6 @@ class Persona(TimestampMixin, SQLModel, table=True):
     system_prompt: str = Field(sa_type=Text, nullable=False)
     begin_dialogs: list | None = Field(default=None, sa_type=JSON)
     """a list of strings, each representing a dialog to start with"""
-    tools: list | None = Field(default=None, sa_type=JSON)
-    """None means use ALL tools for default, empty list means no tools, otherwise a list of tool names."""
-    skills: list | None = Field(default=None, sa_type=JSON)
-    """None means use ALL skills for default, empty list means no skills, otherwise a list of skill names."""
     custom_error_message: str | None = Field(default=None, sa_type=Text)
     """Optional custom error message sent to end users when the agent request fails."""
     folder_id: str | None = Field(default=None, max_length=36)
@@ -461,6 +457,146 @@ class CommandConflict(TimestampMixin, SQLModel, table=True):
     )
 
 
+class PromptCategory:
+    """AAR 七大阶段枚举常量。
+
+    系统的 System Prompt 装配严格按照此顺序拼接，利用 LLM 的首因/近因效应
+    以及最大化 Prompt Caching 命中率。
+    """
+
+    SYSTEM_BASE = "SystemBase"
+    """Stage 1: 全局最底层协议（首因效应最强点）。安全底线、格式规则。"""
+    IDENTITY = "Identity"
+    """Stage 2: 确立"我是谁"。Persona 身份设定。"""
+    CONTEXT = "Context"
+    """Stage 3: 确立"我们在聊什么"。ContextPolicy 处理后的历史记录。"""
+    ABILITIES = "Abilities"
+    """Stage 4: 确立"我能做什么"。动态 Tools/Skills 列表。"""
+    INSTRUCTION = "Instruction"
+    """Stage 5: 确立"我现在要做什么"。Agent 绑定的任务提示词。"""
+    CONSTRAINT = "Constraint"
+    """Stage 6: 否定性或强制性约束（近因效应最强点）。"""
+    REFINEMENT = "Refinement"
+    """Stage 7: 最后的修饰。Interceptors 收尾、Legacy 兼容片段。"""
+
+    ALL: list[str] = [
+        SYSTEM_BASE,
+        IDENTITY,
+        CONTEXT,
+        ABILITIES,
+        INSTRUCTION,
+        CONSTRAINT,
+        REFINEMENT,
+    ]
+    """按物理拼接顺序排列的所有阶段名。"""
+
+
+class PromptType:
+    """Prompt 条目的类型枚举。"""
+
+    STATIC = "static"
+    """静态文本，直接拼接。"""
+    TEMPLATE = "template"
+    """Jinja2 模板，运行时渲染。"""
+    FUNCTIONAL = "functional"
+    """动态回调函数，运行时 await 执行。"""
+
+
+class PromptEntry(TimestampMixin, SQLModel, table=True):
+    """AAR Prompt 注册表条目。
+
+    集中管理所有 Prompt 片段，支持 Static（静态文本）、Template（Jinja2 模板）
+    和 Functional（动态回调）三种类型。每个条目归属于七大阶段之一，
+    由 PipelineOrchestrator 在装配时按阶段顺序组合。
+    """
+
+    __tablename__: str = "prompt_registry"
+
+    id: int | None = Field(
+        default=None,
+        primary_key=True,
+        sa_column_kwargs={"autoincrement": True},
+    )
+    prompt_id: str = Field(
+        max_length=255,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    """唯一字符串标识，如 'sys.safety', 'p.meme.catalog'。"""
+    name: str = Field(max_length=255, nullable=False)
+    """易读的展示名称。"""
+    category: str = Field(max_length=32, nullable=False, index=True)
+    """必须是七大阶段枚举之一：SystemBase / Identity / Context / Abilities / Instruction / Constraint / Refinement。"""
+    priority: int = Field(default=50, nullable=False)
+    """同一 category 内的微观排序，数字越大越靠前。"""
+    type: str = Field(max_length=16, nullable=False, default="static")
+    """枚举：'static' | 'template' | 'functional'。"""
+    content: str | None = Field(default=None, sa_type=Text)
+    """静态正文或 Jinja2 模板内容。Functional 类型此字段可为空。"""
+    source: str = Field(max_length=255, nullable=False, default="system")
+    """来源标识，如 'system', 'plugin:meme_manager', 'user', 'legacy.xxx.auto'。"""
+    is_active: bool = Field(default=True, nullable=False)
+    """是否启用，WebUI 可开关。"""
+
+    __table_args__ = (
+        UniqueConstraint(
+            "prompt_id",
+            name="uix_prompt_entry_prompt_id",
+        ),
+    )
+
+
+class AgentConfig(TimestampMixin, SQLModel, table=True):
+    """AAR Agent 智能体配置。
+
+    取代纯粹的 Persona，Agent 是职能中心，包含关联人格、引用的提示词、
+    授权工具/技能、上下文策略和拦截器配置。
+    """
+
+    __tablename__: str = "agents"
+
+    id: int | None = Field(
+        default=None,
+        primary_key=True,
+        sa_column_kwargs={"autoincrement": True},
+    )
+    agent_id: str = Field(
+        max_length=255,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    """唯一标识，如 'default', 'customer_service', 'entertainment'。"""
+    name: str = Field(max_length=255, nullable=False)
+    """Agent 显示名称。"""
+    persona_id: str | None = Field(default=None, max_length=255)
+    """外键或字符串引用现有的 Persona.persona_id。"""
+    prompts: list | None = Field(default=None, sa_type=JSON)
+    """引用的 prompt_id 列表，按需选取注册表中的 Prompt 片段。"""
+    tools: list | None = Field(default=None, sa_type=JSON)
+    """白名单工具列表。None 表示使用所有工具，[] 表示不使用任何工具。"""
+    skills: list | None = Field(default=None, sa_type=JSON)
+    """白名单技能列表。None 表示使用所有技能，[] 表示不使用任何技能。"""
+    context_policy: str = Field(
+        max_length=255, nullable=False, default="sys.batch_eviction"
+    )
+    """引用的上下文策略 ID。"""
+    interceptors: list | None = Field(default=None, sa_type=JSON)
+    """转换器/拦截器 ID 列表。"""
+    config: dict | None = Field(default=None, sa_type=JSON)
+    """传递给 Policy/Provider 的动态配置，如 {"window_size": 20}。"""
+    tags: list | None = Field(default=None, sa_type=JSON)
+    """检索标签，如 ["entertainment", "efficiency"]。"""
+
+    __table_args__ = (
+        UniqueConstraint(
+            "agent_id",
+            name="uix_agent_id",
+        ),
+    )
+
+
 @dataclass
 class Conversation:
     """LLM 对话类
@@ -496,10 +632,6 @@ class Personality(TypedDict):
     begin_dialogs: list[str]
     mood_imitation_dialogs: list[str]
     """情感模拟对话预设。在 v4.0.0 版本及之后，已被废弃。"""
-    tools: list[str] | None
-    """工具列表。None 表示使用所有工具，空列表表示不使用任何工具"""
-    skills: list[str] | None
-    """Skills 列表。None 表示使用所有 Skills，空列表表示不使用任何 Skills"""
     custom_error_message: str | None
     """可选的人格自定义报错回复信息。配置后将优先发送给最终用户。"""
 

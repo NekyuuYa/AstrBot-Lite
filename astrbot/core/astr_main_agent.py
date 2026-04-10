@@ -11,6 +11,9 @@ from collections.abc import Coroutine
 from dataclasses import dataclass, field
 
 from astrbot.core import logger
+from astrbot.core.aar.agent_manager import AgentManager
+from astrbot.core.aar.context_policy import ContextPolicyRegistry
+from astrbot.core.aar.prompt_manager import PromptManager
 from astrbot.core.agent.handoff import HandoffTool
 from astrbot.core.agent.mcp_client import MCPTool
 from astrbot.core.agent.message import TextPart
@@ -313,13 +316,131 @@ def _build_local_mode_prompt() -> str:
     )
 
 
+async def _aar_assemble_prompt(
+    req: ProviderRequest,
+    cfg: dict,
+    plugin_context: Context,
+    persona: dict | None,
+    persona_id: str | None,
+    use_webchat_special_default: bool,
+    prompt_mgr: PromptManager,
+    agent_mgr: AgentManager,
+    ctx_policy: ContextPolicyRegistry,
+) -> None:
+    """AAR-based prompt assembly: uses PipelineOrchestrator for 7-stage system prompt.
+
+    Dynamically seeds the persona prompt into the Identity stage and skills into the
+    Abilities stage, then delegates to the orchestrator. Begin dialogs and webchat
+    defaults are still handled here for backwards compatibility.
+    """
+    from astrbot.core.aar.orchestrator import PipelineOrchestrator
+
+    # Inject begin_dialogs from persona (context injection, not prompt assembly)
+    if persona:
+        if begin_dialogs := copy.deepcopy(persona.get("_begin_dialogs_processed")):
+            req.contexts[:0] = begin_dialogs
+    elif use_webchat_special_default:
+        req.system_prompt += CHATUI_SPECIAL_DEFAULT_PERSONA_PROMPT
+
+    # Dynamically register persona prompt as Identity-stage entry
+    if persona and persona.get("prompt"):
+        await prompt_mgr.register_prompt(
+            prompt_id="session.persona",
+            name="Session Persona",
+            category="Identity",
+            priority=80,
+            type="static",
+            content=persona["prompt"],
+            source=f"persona:{persona_id or 'unknown'}",
+            is_active=True,
+        )
+    else:
+        # Deactivate session persona if no persona prompt
+        existing = prompt_mgr.get_entry("session.persona")
+        if existing and existing.is_active:
+            await prompt_mgr.register_prompt(
+                prompt_id="session.persona",
+                name="Session Persona",
+                category="Identity",
+                priority=80,
+                type="static",
+                content="",
+                source="system",
+                is_active=False,
+            )
+
+    # Dynamically register skills as Abilities-stage entry
+    runtime = cfg.get("computer_use_runtime", "local")
+    skill_manager = SkillManager()
+    skills = skill_manager.list_skills(active_only=True, runtime=runtime)
+    if skills:
+        if persona and persona.get("skills") is not None:
+            if not persona["skills"]:
+                skills = []
+            else:
+                allowed = set(persona["skills"])
+                skills = [skill for skill in skills if skill.name in allowed]
+
+    if skills:
+        skills_content = build_skills_prompt(skills)
+        if runtime == "none":
+            skills_content += (
+                "\nUser has not enabled the Computer Use feature. "
+                "You cannot use shell or Python to perform skills. "
+                "If you need to use these capabilities, ask the user to enable Computer Use in the AstrBot WebUI -> Config."
+            )
+        await prompt_mgr.register_prompt(
+            prompt_id="session.skills",
+            name="Session Skills",
+            category="Abilities",
+            priority=60,
+            type="static",
+            content=skills_content,
+            source="system",
+            is_active=True,
+        )
+    else:
+        existing = prompt_mgr.get_entry("session.skills")
+        if existing and existing.is_active:
+            await prompt_mgr.register_prompt(
+                prompt_id="session.skills",
+                name="Session Skills",
+                category="Abilities",
+                priority=60,
+                type="static",
+                content="",
+                source="system",
+                is_active=False,
+            )
+
+    # Run the 7-stage assembly
+    orchestrator = PipelineOrchestrator(prompt_mgr, agent_mgr, ctx_policy)
+    assembly_ctx = await orchestrator.assemble_request(
+        agent_id=None,  # Use default agent
+        raw_messages=[],  # Context policy handled externally by existing pipeline
+    )
+
+    # Append the fully assembled system prompt
+    if assembly_ctx.final_system_prompt:
+        req.system_prompt += f"\n{assembly_ctx.final_system_prompt}\n"
+
+    logger.debug(
+        "AAR assembly complete: %d chars added to system_prompt",
+        len(assembly_ctx.final_system_prompt),
+    )
+
+
 async def _ensure_persona_and_skills(
     req: ProviderRequest,
     cfg: dict,
     plugin_context: Context,
     event: AstrMessageEvent,
 ) -> None:
-    """Ensure persona and skills are applied to the request's system prompt or user prompt."""
+    """Ensure persona and skills are applied to the request via the AAR 7-stage pipeline.
+
+    Assembles system_prompt via PipelineOrchestrator, then injects the tool whitelist
+    defined in the active AgentConfig.
+    """
     if not req.conversation:
         return
 
@@ -339,50 +460,36 @@ async def _ensure_persona_and_skills(
         event, extract_persona_custom_error_message_from_persona(persona)
     )
 
-    if persona:
-        # Inject persona system prompt
-        if prompt := persona["prompt"]:
-            req.system_prompt += f"\n# Persona Instructions\n\n{prompt}\n"
-        if begin_dialogs := copy.deepcopy(persona.get("_begin_dialogs_processed")):
-            req.contexts[:0] = begin_dialogs
-    elif use_webchat_special_default:
-        req.system_prompt += CHATUI_SPECIAL_DEFAULT_PERSONA_PROMPT
+    # --- Prompt Assembly via AAR 7-stage pipeline ---
+    aar_prompt_mgr: PromptManager = getattr(plugin_context, "aar_prompt_mgr", None)
+    aar_agent_mgr: AgentManager = getattr(plugin_context, "aar_agent_mgr", None)
+    aar_ctx_policy: ContextPolicyRegistry = getattr(plugin_context, "aar_ctx_policy", None)
 
-    # Inject skills prompt
-    runtime = cfg.get("computer_use_runtime", "local")
-    skill_manager = SkillManager()
-    skills = skill_manager.list_skills(active_only=True, runtime=runtime)
+    if aar_prompt_mgr is not None:
+        await _aar_assemble_prompt(
+            req, cfg, plugin_context, persona, persona_id,
+            use_webchat_special_default, aar_prompt_mgr, aar_agent_mgr, aar_ctx_policy,
+        )
 
-    if skills:
-        if persona and persona.get("skills") is not None:
-            if not persona["skills"]:
-                skills = []
-            else:
-                allowed = set(persona["skills"])
-                skills = [skill for skill in skills if skill.name in allowed]
-        if skills:
-            req.system_prompt += f"\n{build_skills_prompt(skills)}\n"
-            if runtime == "none":
-                req.system_prompt += (
-                    "User has not enabled the Computer Use feature. "
-                    "You cannot use shell or Python to perform skills. "
-                    "If you need to use these capabilities, ask the user to enable Computer Use in the AstrBot WebUI -> Config."
-                )
     tmgr = plugin_context.get_llm_tool_manager()
 
-    # inject toolset in the persona
-    if (persona and persona.get("tools") is None) or not persona:
+    # inject toolset: use AgentConfig.tools whitelist, falling back to all active tools
+    agent_tools: list | None = None
+    if aar_agent_mgr is not None:
+        agent_tools = aar_agent_mgr.resolve_agent().tools
+
+    if agent_tools is None:
+        # None means "use all active tools"
         persona_toolset = tmgr.get_full_tool_set()
         for tool in list(persona_toolset):
             if not tool.active:
                 persona_toolset.remove_tool(tool.name)
     else:
         persona_toolset = ToolSet()
-        if persona["tools"]:
-            for tool_name in persona["tools"]:
-                tool = tmgr.get_func(tool_name)
-                if tool and tool.active:
-                    persona_toolset.add_tool(tool)
+        for tool_name in agent_tools:
+            tool = tmgr.get_func(tool_name)
+            if tool and tool.active:
+                persona_toolset.add_tool(tool)
     if not req.func_tool:
         req.func_tool = persona_toolset
     else:

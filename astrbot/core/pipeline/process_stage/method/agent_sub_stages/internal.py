@@ -228,10 +228,24 @@ class InternalAgentSubStage(Stage):
                         and not event.platform_meta.support_streaming_message
                     )
 
+                    # AAR Legacy Sandbox Snapshot
+                    aar_prompt_mgr = None
+                    snapshot = None
+                    try:
+                        aar_prompt_mgr = getattr(self.ctx, "aar_prompt_mgr", None)
+                        if aar_prompt_mgr:
+                            from astrbot.core.aar.legacy_adapter import RequestSnapshot
+                            snapshot = RequestSnapshot(req)
+                    except ImportError:
+                        pass
+
                     if await call_event_hook(event, EventType.OnLLMRequestEvent, req):
                         if reset_coro:
                             reset_coro.close()
                         return
+
+                    if snapshot and aar_prompt_mgr:
+                        await snapshot.compare_and_archive(aar_prompt_mgr)
 
                     # apply reset
                     if reset_coro:

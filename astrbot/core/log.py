@@ -272,6 +272,7 @@ class LogManager:
 
         handler = LogQueueHandler(log_broker)
         handler.setLevel(logging.DEBUG)
+        handler.addFilter(_RecordEnricherFilter())
         handler.addFilter(_QueueAnsiColorFilter())
         handler.setFormatter(
             logging.Formatter(

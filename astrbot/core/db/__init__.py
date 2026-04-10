@@ -8,6 +8,7 @@ from deprecated import deprecated
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from astrbot.core.db.po import (
+    AgentConfig,
     ApiKey,
     Attachment,
     ChatUIProject,
@@ -21,6 +22,7 @@ from astrbot.core.db.po import (
     PlatformSession,
     PlatformStat,
     Preference,
+    PromptEntry,
     ProviderStat,
     SessionProjectRelation,
     Stats,
@@ -340,8 +342,6 @@ class BaseDatabase(abc.ABC):
         persona_id: str,
         system_prompt: str,
         begin_dialogs: list[str] | None = None,
-        tools: list[str] | None = None,
-        skills: list[str] | None = None,
         custom_error_message: str | None = None,
         folder_id: str | None = None,
         sort_order: int = 0,
@@ -352,8 +352,6 @@ class BaseDatabase(abc.ABC):
             persona_id: Unique identifier for the persona
             system_prompt: System prompt for the persona
             begin_dialogs: Optional list of initial dialog strings
-            tools: Optional list of tool names (None means all tools, [] means no tools)
-            skills: Optional list of skill names (None means all skills, [] means no skills)
             custom_error_message: Optional persona-level fallback error message
             folder_id: Optional folder ID to place the persona in (None means root)
             sort_order: Sort order within the folder (default 0)
@@ -376,8 +374,6 @@ class BaseDatabase(abc.ABC):
         persona_id: str,
         system_prompt: str | None = None,
         begin_dialogs: list[str] | None = None,
-        tools: list[str] | None = None,
-        skills: list[str] | None = None,
         custom_error_message: str | None = None,
     ) -> Persona | None:
         """Update a persona's system prompt or begin dialogs."""
@@ -589,6 +585,84 @@ class BaseDatabase(abc.ABC):
     # async def get_llm_messages(self, cid: str) -> list[LLMMessage]:
     #     """Get all LLM messages for a specific conversation."""
     #     ...
+
+    # ====
+    # AAR Prompt Registry
+    # ====
+
+    @abc.abstractmethod
+    async def upsert_prompt_entry(
+        self,
+        prompt_id: str,
+        name: str,
+        category: str,
+        *,
+        priority: int = 50,
+        type: str = "static",
+        content: str | None = None,
+        source: str = "system",
+        is_active: bool = True,
+    ) -> PromptEntry:
+        """Create or update a prompt registry entry."""
+        ...
+
+    @abc.abstractmethod
+    async def get_prompt_entry(self, prompt_id: str) -> PromptEntry | None:
+        """Get a prompt entry by its prompt_id."""
+        ...
+
+    @abc.abstractmethod
+    async def get_prompt_entries(
+        self,
+        prompt_ids: list[str] | None = None,
+        category: str | None = None,
+        source: str | None = None,
+        active_only: bool = True,
+    ) -> list[PromptEntry]:
+        """Get prompt entries with optional filters."""
+        ...
+
+    @abc.abstractmethod
+    async def delete_prompt_entry(self, prompt_id: str) -> None:
+        """Delete a prompt entry by its prompt_id."""
+        ...
+
+    # ====
+    # AAR Agent Management
+    # ====
+
+    @abc.abstractmethod
+    async def upsert_agent(
+        self,
+        agent_id: str,
+        name: str,
+        *,
+        persona_id: str | None = None,
+        prompts: list[str] | None = None,
+        tools: list[str] | None = None,
+        skills: list[str] | None = None,
+        context_policy: str = "sys.batch_eviction",
+        interceptors: list[str] | None = None,
+        config: dict | None = None,
+        tags: list[str] | None = None,
+    ) -> AgentConfig:
+        """Create or update an agent configuration."""
+        ...
+
+    @abc.abstractmethod
+    async def get_agent(self, agent_id: str) -> AgentConfig | None:
+        """Get an agent by its agent_id."""
+        ...
+
+    @abc.abstractmethod
+    async def get_agents(self, tag: str | None = None) -> list[AgentConfig]:
+        """Get all agents, optionally filtered by tag."""
+        ...
+
+    @abc.abstractmethod
+    async def delete_agent(self, agent_id: str) -> None:
+        """Delete an agent by its agent_id."""
+        ...
 
     @abc.abstractmethod
     async def get_session_conversations(

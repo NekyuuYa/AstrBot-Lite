@@ -10,6 +10,7 @@ from sqlmodel import col, delete, desc, func, or_, select, text, update
 
 from astrbot.core.db import BaseDatabase
 from astrbot.core.db.po import (
+    AgentConfig,
     ApiKey,
     Attachment,
     ChatUIProject,
@@ -23,6 +24,7 @@ from astrbot.core.db.po import (
     PlatformSession,
     PlatformStat,
     Preference,
+    PromptEntry,
     ProviderStat,
     SessionProjectRelation,
     SQLModel,
@@ -56,9 +58,8 @@ class SQLiteDatabase(BaseDatabase):
             await conn.execute(text("PRAGMA temp_store=MEMORY"))
             await conn.execute(text("PRAGMA mmap_size=134217728"))
             await conn.execute(text("PRAGMA optimize"))
-            # 确保 personas 表有 folder_id、sort_order、skills 列（前向兼容）
+            # 确保 personas 表有 folder_id、sort_order 列（前向兼容）
             await self._ensure_persona_folder_columns(conn)
-            await self._ensure_persona_skills_column(conn)
             await self._ensure_persona_custom_error_message_column(conn)
             # 确保 provider_stats 表有 cost_usd 和 prompt_metadata 列（前向兼容）
             await self._ensure_provider_stats_columns(conn)
@@ -83,18 +84,6 @@ class SQLiteDatabase(BaseDatabase):
             await conn.execute(
                 text("ALTER TABLE personas ADD COLUMN sort_order INTEGER DEFAULT 0")
             )
-
-    async def _ensure_persona_skills_column(self, conn) -> None:
-        """确保 personas 表有 skills 列。
-
-        这是为了支持旧版数据库的平滑升级。新版数据库通过 SQLModel
-        的 metadata.create_all 自动创建这些列。
-        """
-        result = await conn.execute(text("PRAGMA table_info(personas)"))
-        columns = {row[1] for row in result.fetchall()}
-
-        if "skills" not in columns:
-            await conn.execute(text("ALTER TABLE personas ADD COLUMN skills JSON"))
 
     async def _ensure_persona_custom_error_message_column(self, conn) -> None:
         """确保 personas 表有 custom_error_message 列。"""
@@ -840,8 +829,6 @@ class SQLiteDatabase(BaseDatabase):
         persona_id,
         system_prompt,
         begin_dialogs=None,
-        tools=None,
-        skills=None,
         custom_error_message=None,
         folder_id=None,
         sort_order=0,
@@ -854,8 +841,6 @@ class SQLiteDatabase(BaseDatabase):
                     persona_id=persona_id,
                     system_prompt=system_prompt,
                     begin_dialogs=begin_dialogs or [],
-                    tools=tools,
-                    skills=skills,
                     custom_error_message=custom_error_message,
                     folder_id=folder_id,
                     sort_order=sort_order,
@@ -886,8 +871,6 @@ class SQLiteDatabase(BaseDatabase):
         persona_id,
         system_prompt=None,
         begin_dialogs=None,
-        tools=NOT_GIVEN,
-        skills=NOT_GIVEN,
         custom_error_message=NOT_GIVEN,
     ):
         """Update a persona's system prompt or begin dialogs."""
@@ -900,10 +883,6 @@ class SQLiteDatabase(BaseDatabase):
                     values["system_prompt"] = system_prompt
                 if begin_dialogs is not None:
                     values["begin_dialogs"] = begin_dialogs
-                if tools is not NOT_GIVEN:
-                    values["tools"] = tools
-                if skills is not NOT_GIVEN:
-                    values["skills"] = skills
                 if custom_error_message is not NOT_GIVEN:
                     values["custom_error_message"] = custom_error_message
                 if not values:
@@ -1432,6 +1411,190 @@ class SQLiteDatabase(BaseDatabase):
             )
 
         await self._run_in_tx(_op)
+
+    # ====
+    # AAR Prompt Registry
+    # ====
+
+    async def upsert_prompt_entry(
+        self,
+        prompt_id: str,
+        name: str,
+        category: str,
+        *,
+        priority: int = 50,
+        type: str = "static",
+        content: str | None = None,
+        source: str = "system",
+        is_active: bool = True,
+    ) -> PromptEntry:
+        """Create or update a prompt registry entry."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                result = await session.execute(
+                    select(PromptEntry).where(PromptEntry.prompt_id == prompt_id)
+                )
+                existing = result.scalar_one_or_none()
+                if existing:
+                    existing.name = name
+                    existing.category = category
+                    existing.priority = priority
+                    existing.type = type
+                    existing.content = content
+                    existing.source = source
+                    existing.is_active = is_active
+                    await session.flush()
+                    await session.refresh(existing)
+                    session.expunge(existing)
+                    return existing
+                entry = PromptEntry(
+                    prompt_id=prompt_id,
+                    name=name,
+                    category=category,
+                    priority=priority,
+                    type=type,
+                    content=content,
+                    source=source,
+                    is_active=is_active,
+                )
+                session.add(entry)
+                await session.flush()
+                await session.refresh(entry)
+                session.expunge(entry)
+                return entry
+
+    async def get_prompt_entry(self, prompt_id: str) -> PromptEntry | None:
+        """Get a prompt entry by its prompt_id."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            result = await session.execute(
+                select(PromptEntry).where(PromptEntry.prompt_id == prompt_id)
+            )
+            return result.scalar_one_or_none()
+
+    async def get_prompt_entries(
+        self,
+        prompt_ids: list[str] | None = None,
+        category: str | None = None,
+        source: str | None = None,
+        active_only: bool = True,
+    ) -> list[PromptEntry]:
+        """Get prompt entries with optional filters."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            query = select(PromptEntry)
+            if prompt_ids is not None:
+                query = query.where(col(PromptEntry.prompt_id).in_(prompt_ids))
+            if category is not None:
+                query = query.where(PromptEntry.category == category)
+            if source is not None:
+                query = query.where(PromptEntry.source == source)
+            if active_only:
+                query = query.where(PromptEntry.is_active == True)
+            query = query.order_by(
+                col(PromptEntry.category), desc(col(PromptEntry.priority))
+            )
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
+    async def delete_prompt_entry(self, prompt_id: str) -> None:
+        """Delete a prompt entry by its prompt_id."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                await session.execute(
+                    delete(PromptEntry).where(PromptEntry.prompt_id == prompt_id)
+                )
+
+    # ====
+    # AAR Agent Management
+    # ====
+
+    async def upsert_agent(
+        self,
+        agent_id: str,
+        name: str,
+        *,
+        persona_id: str | None = None,
+        prompts: list[str] | None = None,
+        tools: list[str] | None = None,
+        skills: list[str] | None = None,
+        context_policy: str = "sys.batch_eviction",
+        interceptors: list[str] | None = None,
+        config: dict | None = None,
+        tags: list[str] | None = None,
+    ) -> AgentConfig:
+        """Create or update an agent configuration."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                result = await session.execute(
+                    select(AgentConfig).where(AgentConfig.agent_id == agent_id)
+                )
+                existing = result.scalar_one_or_none()
+                if existing:
+                    existing.name = name
+                    existing.persona_id = persona_id
+                    existing.prompts = prompts
+                    existing.tools = tools
+                    existing.skills = skills
+                    existing.context_policy = context_policy
+                    existing.interceptors = interceptors
+                    existing.config = config
+                    existing.tags = tags
+                    await session.flush()
+                    await session.refresh(existing)
+                    session.expunge(existing)
+                    return existing
+                agent = AgentConfig(
+                    agent_id=agent_id,
+                    name=name,
+                    persona_id=persona_id,
+                    prompts=prompts,
+                    tools=tools,
+                    skills=skills,
+                    context_policy=context_policy,
+                    interceptors=interceptors,
+                    config=config,
+                    tags=tags,
+                )
+                session.add(agent)
+                await session.flush()
+                await session.refresh(agent)
+                session.expunge(agent)
+                return agent
+
+    async def get_agent(self, agent_id: str) -> AgentConfig | None:
+        """Get an agent by its agent_id."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            result = await session.execute(
+                select(AgentConfig).where(AgentConfig.agent_id == agent_id)
+            )
+            return result.scalar_one_or_none()
+
+    async def get_agents(self, tag: str | None = None) -> list[AgentConfig]:
+        """Get all agents, optionally filtered by tag."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            query = select(AgentConfig).order_by(col(AgentConfig.agent_id))
+            result = await session.execute(query)
+            agents = list(result.scalars().all())
+            if tag is not None:
+                agents = [
+                    a for a in agents if a.tags and tag in a.tags
+                ]
+            return agents
+
+    async def delete_agent(self, agent_id: str) -> None:
+        """Delete an agent by its agent_id."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                await session.execute(
+                    delete(AgentConfig).where(AgentConfig.agent_id == agent_id)
+                )
 
     # ====
     # Deprecated Methods

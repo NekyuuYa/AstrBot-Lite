@@ -126,6 +126,7 @@ DEFAULT_CONFIG = {
         "identifier": False,
         "group_name_display": False,
         "datetime_system_prompt": True,
+        "default_agent_id": "sys.default",
         "default_personality": "default",
         "persona_pool": ["*"],
         "prompt_prefix": "{{prompt}}",
@@ -3162,15 +3163,15 @@ CONFIG_METADATA_3 = {
                     "provider_settings.enable": True,
                 },
             },
-            "persona": {
-                "description": "人格",
-                "hint": "",
+            "agent": {
+                "description": "智能体 (Agent)",
+                "hint": "配置机器人默认使用的智能体。智能体管理了人格、提示词编排和工具授权。",
                 "type": "object",
                 "items": {
-                    "provider_settings.default_personality": {
-                        "description": "默认采用的人格",
+                    "provider_settings.default_agent_id": {
+                        "description": "默认智能体",
                         "type": "string",
-                        "_special": "select_persona",
+                        "_special": "select_agent",
                     },
                 },
                 "condition": {

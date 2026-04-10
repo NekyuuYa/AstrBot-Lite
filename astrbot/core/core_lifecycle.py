@@ -18,6 +18,8 @@ from asyncio import Queue
 
 from astrbot.api import logger, sp
 from astrbot.core import LogBroker, LogManager
+from astrbot.core.aar import AgentManager, ContextPolicyRegistry, PromptManager
+from astrbot.core.aar.integration import migrate_personas_to_registry, seed_system_prompts
 from astrbot.core.astrbot_config_mgr import AstrBotConfigManager
 from astrbot.core.config.default import VERSION
 from astrbot.core.conversation_mgr import ConversationManager
@@ -153,6 +155,30 @@ class AstrBotCoreLifecycle:
         self.persona_mgr = PersonaManager(self.db, self.astrbot_config_mgr)
         await self.persona_mgr.initialize()
 
+        # 初始化 AAR 编排系统（旁路建设，不干扰现有逻辑）
+        self.aar_prompt_mgr = PromptManager(self.db)
+        await self.aar_prompt_mgr.initialize()
+        await seed_system_prompts(self.aar_prompt_mgr)
+        await migrate_personas_to_registry(self.aar_prompt_mgr, self.db)
+        self.aar_agent_mgr = AgentManager(self.db)
+        await self.aar_agent_mgr.initialize()
+        self.aar_ctx_policy = ContextPolicyRegistry()
+        logger.info("AAR orchestration system initialized.")
+
+        # Wrap personas with PersonaProxy to intercept legacy plugin modifications
+        from astrbot.core.aar.legacy_adapter import PersonaProxy
+        import astrbot.core.persona_mgr as pm_module
+        
+        pm_module.DEFAULT_PERSONALITY = PersonaProxy(
+            pm_module.DEFAULT_PERSONALITY, prompt_manager=self.aar_prompt_mgr
+        )
+        
+        for i, p in enumerate(self.persona_mgr.personas_v3):
+            proxy = PersonaProxy(p, prompt_manager=self.aar_prompt_mgr)
+            self.persona_mgr.personas_v3[i] = proxy
+            if self.persona_mgr.selected_default_persona_v3 and p["name"] == self.persona_mgr.selected_default_persona_v3["name"]:
+                self.persona_mgr.selected_default_persona_v3 = proxy
+
         # 初始化供应商管理器
         self.provider_manager = ProviderManager(
             self.astrbot_config_mgr,
@@ -193,6 +219,11 @@ class AstrBotCoreLifecycle:
             self.cron_manager,
             self.subagent_orchestrator,
         )
+
+        # Expose AAR managers on Context for _ensure_persona_and_skills access
+        self.star_context.aar_prompt_mgr = self.aar_prompt_mgr
+        self.star_context.aar_agent_mgr = self.aar_agent_mgr
+        self.star_context.aar_ctx_policy = self.aar_ctx_policy
 
         # 初始化插件管理器
         self.plugin_manager = PluginManager(self.star_context, self.astrbot_config)

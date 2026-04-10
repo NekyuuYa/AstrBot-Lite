@@ -327,9 +327,23 @@ class ThirdPartyAgentSubStage(Stage):
         custom_error_message = await self._resolve_persona_custom_error_message(event)
         set_persona_custom_error_message_on_event(event, custom_error_message)
 
+        # AAR Legacy Sandbox Snapshot
+        aar_prompt_mgr = None
+        snapshot = None
+        try:
+            aar_prompt_mgr = getattr(self.ctx.plugin_manager.context, "aar_prompt_mgr", None)
+            if aar_prompt_mgr:
+                from astrbot.core.aar.legacy_adapter import RequestSnapshot
+                snapshot = RequestSnapshot(req)
+        except ImportError:
+            pass
+
         # call event hook
         if await call_event_hook(event, EventType.OnLLMRequestEvent, req):
             return
+            
+        if snapshot and aar_prompt_mgr:
+            await snapshot.compare_and_archive(aar_prompt_mgr)
 
         if self.runner_type == "dify":
             runner = DifyAgentRunner[AstrAgentContext]()
