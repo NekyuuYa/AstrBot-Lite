@@ -1,0 +1,84 @@
+{
+  "header": {
+    "eyebrow": "AAR Prompt Registry"
+  },
+  "page": {
+    "title": "Prompt 注册表",
+    "subtitle": "管理所有 Prompt 碎片：内置、插件注入和自定义条目。七大阶段 (System Base -> Refinement) 严格控制最终发送给大模型的 System Prompt 顺序。"
+  },
+  "actions": {
+    "create": "新建 Prompt",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "search": "搜索 Prompt ID 或名称...",
+    "refresh": "刷新"
+  },
+  "filters": {
+    "allCategories": "全部阶段",
+    "allSources": "全部来源",
+    "allTypes": "全部类型"
+  },
+  "table": {
+    "promptId": "Prompt ID",
+    "name": "名称",
+    "category": "阶段",
+    "type": "类型",
+    "source": "来源",
+    "priority": "优先级",
+    "active": "状态",
+    "actions": "操作",
+    "noData": "暂无 Prompt 条目",
+    "noMatch": "没有匹配的条目"
+  },
+  "types": {
+    "static": "静态",
+    "template": "模板",
+    "functional": "动态"
+  },
+  "editor": {
+    "titleCreate": "新建 Prompt",
+    "titleEdit": "编辑 Prompt",
+    "promptId": "Prompt ID",
+    "promptIdHint": "唯一字符串标识，如 'sys.safety' 或 'plugin.weather.greeting'",
+    "name": "显示名称",
+    "nameHint": "易读的展示名称",
+    "category": "阶段分类",
+    "categoryHint": "决定此 Prompt 在最终 System Prompt 中的物理位置",
+    "priority": "优先级",
+    "priorityHint": "同阶段内排序权重，数字越大越靠前 (0-100)",
+    "type": "类型",
+    "source": "来源",
+    "sourceHint": "标识此条目的来源 (system / user / plugin:xxx)",
+    "content": "内容",
+    "contentHint": "Prompt 正文 (支持 Markdown)",
+    "contentFunctionalHint": "此内容由代码动态生成，不可编辑",
+    "active": "启用",
+    "systemWarning": "此条目来自系统或遗留拦截，修改可能影响核心行为，请谨慎操作。"
+  },
+  "legacy": {
+    "alertTitle": "检测到旧版插件注入",
+    "alertMessage": "系统拦截了旧版插件的强制注入行为，已自动归档为 Legacy Prompt。您可以在下方列表中对其进行禁用或修改。"
+  },
+  "messages": {
+    "loadFailed": "加载 Prompt 列表失败",
+    "saveFailed": "保存失败",
+    "saveSuccess": "Prompt 已保存",
+    "deleteFailed": "删除失败",
+    "deleteSuccess": "Prompt 已删除",
+    "deleteConfirm": "确定要删除 Prompt「{id}」吗？此操作不可恢复。",
+    "idRequired": "Prompt ID 不能为空",
+    "nameRequired": "名称不能为空",
+    "categoryRequired": "请选择阶段分类"
+  },
+  "overview": {
+    "total": "总条目",
+    "totalNote": "注册表中的 Prompt 总数",
+    "active": "已启用",
+    "activeNote": "当前生效的条目数量",
+    "stages": "覆盖阶段",
+    "stagesNote": "有内容的阶段数量",
+    "legacy": "Legacy 条目",
+    "legacyNote": "旧版插件拦截归档的条目"
+  }
+}

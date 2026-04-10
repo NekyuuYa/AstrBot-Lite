@@ -1,0 +1,106 @@
+{
+  "header": {
+    "eyebrow": "AAR Agent Hub"
+  },
+  "page": {
+    "title": "Центр агентов",
+    "subtitle": "Создание и управление несколькими агентами. Каждый Agent имеет персону, промпты, инструменты и политику контекста."
+  },
+  "actions": {
+    "create": "Новый Agent",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "setDefault": "По умолчанию",
+    "backToList": "К списку",
+    "addPrompt": "Добавить промпт",
+    "removePrompt": "Удалить"
+  },
+  "filters": {
+    "allTags": "Все теги",
+    "search": "Поиск агентов..."
+  },
+  "card": {
+    "defaultBadge": "По умолчанию",
+    "persona": "Персона",
+    "nonePersona": "Не задана",
+    "tools": "Инструменты",
+    "skills": "Навыки",
+    "prompts": "Промпты",
+    "policy": "Политика контекста",
+    "tags": "Теги",
+    "noTags": "Нет тегов",
+    "created": "Создано"
+  },
+  "editor": {
+    "titleCreate": "Создать Agent",
+    "titleEdit": "Редактировать Agent",
+    "basicInfo": "Основная информация",
+    "agentId": "Agent ID",
+    "agentIdHint": "Уникальный идентификатор (нельзя изменить после создания)",
+    "name": "Имя",
+    "nameHint": "Отображаемое имя агента",
+    "tags": "Теги",
+    "tagsHint": "Нажмите Enter для добавления",
+    "identityPolicy": "Идентичность и политика",
+    "persona": "Персона",
+    "personaHint": "Выберите персону для наследования",
+    "noPersona": "(Нет)",
+    "contextPolicy": "Политика контекста",
+    "contextPolicyHint": "Управление обрезкой истории",
+    "interceptors": "Перехватчики",
+    "interceptorsHint": "Выберите перехватчики",
+    "abilities": "Возможности",
+    "toolsLabel": "Инструменты",
+    "toolsHint": "Выберите инструменты",
+    "skillsLabel": "Навыки",
+    "skillsHint": "Выберите навыки",
+    "transferAvailable": "Доступно",
+    "transferSelected": "Выбрано",
+    "transferSearch": "Поиск...",
+    "transferEmpty": "Нет элементов",
+    "promptOrchestration": "Оркестрация промптов",
+    "promptOrchestrationHint": "Выберите промпты для агента",
+    "selectPrompts": "Выбрать промпты",
+    "noPrompts": "Нет связанных промптов",
+    "stageEmpty": "Нет промптов на этом этапе",
+    "configJson": "JSON конфигурация",
+    "configJsonHint": "Дополнительные параметры"
+  },
+  "messages": {
+    "loadFailed": "Не удалось загрузить",
+    "saveFailed": "Не удалось сохранить",
+    "saveSuccess": "Agent сохранён",
+    "deleteFailed": "Не удалось удалить",
+    "deleteSuccess": "Agent удалён",
+    "deleteConfirm": "Удалить Agent «{id}»?",
+    "deleteDefaultForbidden": "Нельзя удалить Agent по умолчанию",
+    "idRequired": "Agent ID обязателен",
+    "nameRequired": "Имя обязательно"
+  },
+  "overview": {
+    "total": "Всего агентов",
+    "totalNote": "Количество агентов",
+    "withPersona": "С персоной",
+    "withPersonaNote": "Агенты с персоной",
+    "withTools": "С инструментами",
+    "withToolsNote": "Агенты с инструментами",
+    "withPrompts": "С промптами",
+    "withPromptsNote": "Агенты с промптами"
+  },
+  "empty": {
+    "title": "Нет агентов",
+    "subtitle": "Создайте первого агента",
+    "action": "Создать Agent"
+  },
+  "promptPicker": {
+    "title": "Выбор промптов",
+    "subtitle": "Выберите промпты из реестра",
+    "selected": "Выбрано: {count}",
+    "confirm": "Подтвердить"
+  },
+  "policies": {
+    "sys.batch_eviction": "Пакетное удаление"
+  }
+}

@@ -37,6 +37,8 @@ import zhCNPersona from './locales/zh-CN/features/persona.json';
 import zhCNMigration from './locales/zh-CN/features/migration.json';
 import zhCNCommand from './locales/zh-CN/features/command.json';
 import zhCNSubagent from './locales/zh-CN/features/subagent.json';
+import zhCNAarPrompts from './locales/zh-CN/features/aar-prompts.json';
+import zhCNAarAgents from './locales/zh-CN/features/aar-agents.json';
 import zhCNWelcome from './locales/zh-CN/features/welcome.json';
 
 import zhCNErrors from './locales/zh-CN/messages/errors.json';
@@ -79,6 +81,8 @@ import enUSPersona from './locales/en-US/features/persona.json';
 import enUSMigration from './locales/en-US/features/migration.json';
 import enUSCommand from './locales/en-US/features/command.json';
 import enUSSubagent from './locales/en-US/features/subagent.json';
+import enUSAarPrompts from './locales/en-US/features/aar-prompts.json';
+import enUSAarAgents from './locales/en-US/features/aar-agents.json';
 import enUSWelcome from './locales/en-US/features/welcome.json';
 
 import enUSErrors from './locales/en-US/messages/errors.json';
@@ -121,6 +125,8 @@ import ruRUPersona from './locales/ru-RU/features/persona.json';
 import ruRUMigration from './locales/ru-RU/features/migration.json';
 import ruRUCommand from './locales/ru-RU/features/command.json';
 import ruRUSubagent from './locales/ru-RU/features/subagent.json';
+import ruRUAarPrompts from './locales/ru-RU/features/aar-prompts.json';
+import ruRUAarAgents from './locales/ru-RU/features/aar-agents.json';
 import ruRUWelcome from './locales/ru-RU/features/welcome.json';
 
 import ruRUErrors from './locales/ru-RU/messages/errors.json';
@@ -171,6 +177,8 @@ export const translations = {
       migration: zhCNMigration,
       command: zhCNCommand,
       subagent: zhCNSubagent,
+      'aar-prompts': zhCNAarPrompts,
+      'aar-agents': zhCNAarAgents,
       welcome: zhCNWelcome
     },
     messages: {
@@ -221,6 +229,8 @@ export const translations = {
       migration: enUSMigration,
       command: enUSCommand,
       subagent: enUSSubagent,
+      'aar-prompts': enUSAarPrompts,
+      'aar-agents': enUSAarAgents,
       welcome: enUSWelcome
     },
     messages: {
@@ -271,6 +281,8 @@ export const translations = {
       migration: ruRUMigration,
       command: ruRUCommand,
       subagent: ruRUSubagent,
+      'aar-prompts': ruRUAarPrompts,
+      'aar-agents': ruRUAarAgents,
       welcome: ruRUWelcome
     },
     messages: {

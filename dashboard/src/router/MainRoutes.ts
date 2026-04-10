@@ -101,6 +101,22 @@ const MainRoutes = {
       component: () => import('@/views/SubAgentPage.vue')
     },
     {
+      name: 'AarAgents',
+      path: '/aar/agents',
+      component: () => import('@/views/aar/AgentHubPage.vue')
+    },
+    {
+      name: 'AarAgentEdit',
+      path: '/aar/agents/:agentId',
+      component: () => import('@/views/aar/AgentEditorPage.vue'),
+      props: true
+    },
+    {
+      name: 'AarPrompts',
+      path: '/aar/prompts',
+      component: () => import('@/views/aar/PromptRegistryPage.vue')
+    },
+    {
       name: 'CronJobs',
       path: '/cron',
       component: () => import('@/views/CronJobPage.vue')

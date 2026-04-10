@@ -49,6 +49,16 @@ const sidebarItem: menu[] = [
         to: '/providers',
       },
       {
+        title: 'core.navigation.agent.agentHub',
+        icon: 'mdi-robot-outline',
+        to: '/aar/agents'
+      },
+      {
+        title: 'core.navigation.agent.promptRegistry',
+        icon: 'mdi-script-text-outline',
+        to: '/aar/prompts'
+      },
+      {
         title: 'core.navigation.agent.subagent',
         icon: 'mdi-vector-link',
         to: '/subagent'

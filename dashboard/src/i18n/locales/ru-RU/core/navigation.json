@@ -6,6 +6,8 @@
     "commands": "Команды",
     "persona": "Персонажи",
     "subagent": "Субагенты",
+    "agentHub": "Центр агентов",
+    "promptRegistry": "Реестр промптов",
     "toolUse": "Инструменты MCP",
     "extension": "Плагины",
     "extensionTabs": {

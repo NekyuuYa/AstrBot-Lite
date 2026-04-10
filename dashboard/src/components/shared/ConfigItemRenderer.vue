@@ -33,6 +33,9 @@
     <template v-else-if="itemMeta?._special === 'select_persona'">
       <PersonaSelector :model-value="modelValue" @update:model-value="emitUpdate" />
     </template>
+    <template v-else-if="itemMeta?._special === 'select_agent'">
+      <AgentSelector :model-value="modelValue" @update:model-value="emitUpdate" />
+    </template>
     <template v-else-if="itemMeta?._special === 'persona_pool'">
       <PersonaSelector :model-value="modelValue" @update:model-value="emitUpdate" :button-text="t('core.shared.personaSelector.selectPersonaPool')" />
     </template>
@@ -235,6 +238,7 @@ import FileConfigItem from './FileConfigItem.vue'
 import ObjectEditor from './ObjectEditor.vue'
 import ProviderSelector from './ProviderSelector.vue'
 import PersonaSelector from './PersonaSelector.vue'
+import AgentSelector from './AgentSelector.vue'
 import KnowledgeBaseSelector from './KnowledgeBaseSelector.vue'
 import PluginSetSelector from './PluginSetSelector.vue'
 import T2ITemplateEditor from './T2ITemplateEditor.vue'

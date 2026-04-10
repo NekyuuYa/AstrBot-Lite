@@ -1,0 +1,106 @@
+{
+  "header": {
+    "eyebrow": "AAR Agent Hub"
+  },
+  "page": {
+    "title": "Agent 智能体中心",
+    "subtitle": "创建、配置和管理多个智能体。每个 Agent 可独立绑定人格、Prompt 编排、工具授权和上下文策略。"
+  },
+  "actions": {
+    "create": "新建 Agent",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "setDefault": "设为默认",
+    "backToList": "返回列表",
+    "addPrompt": "添加 Prompt",
+    "removePrompt": "移除"
+  },
+  "filters": {
+    "allTags": "全部标签",
+    "search": "搜索 Agent..."
+  },
+  "card": {
+    "defaultBadge": "默认",
+    "persona": "人格",
+    "nonePersona": "未绑定",
+    "tools": "工具",
+    "skills": "技能",
+    "prompts": "Prompts",
+    "policy": "上下文策略",
+    "tags": "标签",
+    "noTags": "无标签",
+    "created": "创建于"
+  },
+  "editor": {
+    "titleCreate": "新建 Agent",
+    "titleEdit": "编辑 Agent",
+    "basicInfo": "基础信息",
+    "agentId": "Agent ID",
+    "agentIdHint": "唯一标识符，如 'my.assistant'（创建后不可修改）",
+    "name": "显示名称",
+    "nameHint": "Agent 的展示名称",
+    "tags": "标签",
+    "tagsHint": "按 Enter 添加标签（如：娱乐、效率、程序员）",
+    "identityPolicy": "身份与策略",
+    "persona": "关联人格 (Persona)",
+    "personaHint": "选择已有人格设定，Agent 将继承其身份和对话风格",
+    "noPersona": "（无）",
+    "contextPolicy": "上下文策略",
+    "contextPolicyHint": "控制对话历史的裁剪方式",
+    "interceptors": "拦截器",
+    "interceptorsHint": "选择要应用的拦截器",
+    "abilities": "能力装配",
+    "toolsLabel": "授权工具 (Tools)",
+    "toolsHint": "选择此 Agent 可使用的工具",
+    "skillsLabel": "授权技能 (Skills)",
+    "skillsHint": "选择此 Agent 可使用的技能",
+    "transferAvailable": "可选",
+    "transferSelected": "已选",
+    "transferSearch": "搜索...",
+    "transferEmpty": "暂无可选项",
+    "promptOrchestration": "Prompt 编排",
+    "promptOrchestrationHint": "选择并排列此 Agent 引用的 Prompt 碎片，按七大阶段分组展示",
+    "selectPrompts": "选择 Prompt",
+    "noPrompts": "尚未关联任何 Prompt",
+    "stageEmpty": "此阶段暂无 Prompt",
+    "configJson": "高级配置 (JSON)",
+    "configJsonHint": "Agent 级别的自定义配置参数"
+  },
+  "messages": {
+    "loadFailed": "加载 Agent 列表失败",
+    "saveFailed": "保存失败",
+    "saveSuccess": "Agent 已保存",
+    "deleteFailed": "删除失败",
+    "deleteSuccess": "Agent 已删除",
+    "deleteConfirm": "确定要删除 Agent「{id}」吗？此操作不可恢复。",
+    "deleteDefaultForbidden": "默认 Agent 不可删除",
+    "idRequired": "Agent ID 不能为空",
+    "nameRequired": "名称不能为空"
+  },
+  "overview": {
+    "total": "Agent 总数",
+    "totalNote": "当前已配置的 Agent 数量",
+    "withPersona": "已绑定人格",
+    "withPersonaNote": "完成角色绑定的 Agent",
+    "withTools": "已装配工具",
+    "withToolsNote": "配置了工具的 Agent",
+    "withPrompts": "已添加编排",
+    "withPromptsNote": "关联了 Prompt 的 Agent"
+  },
+  "empty": {
+    "title": "尚无 Agent",
+    "subtitle": "创建您的第一个智能体开始",
+    "action": "创建 Agent"
+  },
+  "promptPicker": {
+    "title": "选择 Prompt",
+    "subtitle": "从注册表中选择要关联到此 Agent 的 Prompt 碎片",
+    "selected": "已选择 {count} 个",
+    "confirm": "确认选择"
+  },
+  "policies": {
+    "sys.batch_eviction": "批量淘汰策略"
+  }
+}

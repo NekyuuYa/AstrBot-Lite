@@ -1,3 +1,4 @@
+from .agent import AgentRoute
 from .api_key import ApiKeyRoute
 from .auth import AuthRoute
 from .backup import BackupRoute
@@ -14,6 +15,7 @@ from .open_api import OpenApiRoute
 from .persona import PersonaRoute
 from .platform import PlatformRoute
 from .plugin import PluginRoute
+from .prompt import PromptRoute
 from .session_management import SessionManagementRoute
 from .skills import SkillsRoute
 from .stat import StatRoute
@@ -23,6 +25,7 @@ from .tools import ToolsRoute
 from .update import UpdateRoute
 
 __all__ = [
+    "AgentRoute",
     "ApiKeyRoute",
     "AuthRoute",
     "BackupRoute",
@@ -39,6 +42,7 @@ __all__ = [
     "PersonaRoute",
     "PlatformRoute",
     "PluginRoute",
+    "PromptRoute",
     "SessionManagementRoute",
     "StatRoute",
     "StaticFileRoute",

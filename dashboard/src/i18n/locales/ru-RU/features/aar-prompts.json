@@ -1,0 +1,84 @@
+{
+  "header": {
+    "eyebrow": "AAR Prompt Registry"
+  },
+  "page": {
+    "title": "Реестр промптов",
+    "subtitle": "Управление фрагментами: встроенные, от плагинов и пользовательские. 7 этапов (System Base -> Refinement) строго контролируют порядок System Prompt."
+  },
+  "actions": {
+    "create": "Новый промпт",
+    "save": "Сохранить",
+    "cancel": "Отменить",
+    "delete": "Удалить",
+    "search": "Поиск по ID или имени...",
+    "refresh": "Обновить"
+  },
+  "filters": {
+    "allCategories": "Все этапы",
+    "allSources": "Все источники",
+    "allTypes": "Все типы"
+  },
+  "table": {
+    "promptId": "Prompt ID",
+    "name": "Имя",
+    "category": "Этап",
+    "type": "Тип",
+    "source": "Источник",
+    "priority": "Приоритет",
+    "active": "Статус",
+    "actions": "Действия",
+    "noData": "Нет записей",
+    "noMatch": "Совпадений не найдено"
+  },
+  "types": {
+    "static": "Статический",
+    "template": "Шаблон",
+    "functional": "Функция"
+  },
+  "editor": {
+    "titleCreate": "Создать промпт",
+    "titleEdit": "Редактировать промпт",
+    "promptId": "Prompt ID",
+    "promptIdHint": "Уникальный идентификатор, например 'sys.safety'",
+    "name": "Отображаемое имя",
+    "nameHint": "Понятное имя для отображения",
+    "category": "Этап",
+    "categoryHint": "Определяет позицию в итоговом System Prompt",
+    "priority": "Приоритет",
+    "priorityHint": "Вес сортировки в пределах этапа (0-100)",
+    "type": "Тип",
+    "source": "Источник",
+    "sourceHint": "Откуда эта запись (system / user / plugin:xxx)",
+    "content": "Содержимое",
+    "contentHint": "Текст промпта (поддерживает Markdown)",
+    "contentFunctionalHint": "Содержимое генерируется кодом и не может быть изменено",
+    "active": "Активен",
+    "systemWarning": "Системная запись. Изменение может повлиять на работу ядра."
+  },
+  "legacy": {
+    "alertTitle": "Обнаружены инъекции от устаревших плагинов",
+    "alertMessage": "Система перехватила принудительные инъекции промптов от устаревших плагинов и архивировала их."
+  },
+  "messages": {
+    "loadFailed": "Не удалось загрузить список",
+    "saveFailed": "Не удалось сохранить",
+    "saveSuccess": "Промпт сохранён",
+    "deleteFailed": "Не удалось удалить",
+    "deleteSuccess": "Промпт удалён",
+    "deleteConfirm": "Удалить промпт «{id}»? Это действие необратимо.",
+    "idRequired": "Prompt ID обязателен",
+    "nameRequired": "Имя обязательно",
+    "categoryRequired": "Выберите этап"
+  },
+  "overview": {
+    "total": "Всего записей",
+    "totalNote": "Общее количество промптов",
+    "active": "Активные",
+    "activeNote": "Включённые записи",
+    "stages": "Покрытые этапы",
+    "stagesNote": "Этапы с записями",
+    "legacy": "Legacy записи",
+    "legacyNote": "Из перехвата устаревших плагинов"
+  }
+}
