@@ -1427,6 +1427,7 @@ class SQLiteDatabase(BaseDatabase):
         content: str | None = None,
         source: str = "system",
         is_active: bool = True,
+        is_readonly: bool = False,
     ) -> PromptEntry:
         """Create or update a prompt registry entry."""
         async with self.get_db() as session:
@@ -1444,6 +1445,7 @@ class SQLiteDatabase(BaseDatabase):
                     existing.content = content
                     existing.source = source
                     existing.is_active = is_active
+                    existing.is_readonly = is_readonly
                     await session.flush()
                     await session.refresh(existing)
                     session.expunge(existing)
@@ -1457,6 +1459,7 @@ class SQLiteDatabase(BaseDatabase):
                     content=content,
                     source=source,
                     is_active=is_active,
+                    is_readonly=is_readonly,
                 )
                 session.add(entry)
                 await session.flush()

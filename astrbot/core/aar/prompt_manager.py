@@ -65,6 +65,7 @@ class PromptManager:
         content: str | None = None,
         source: str = "system",
         is_active: bool = True,
+        is_readonly: bool = False,
     ) -> PromptEntry:
         """注册或更新一个 Prompt 条目（同时写入 DB 和内存缓存）。
 
@@ -77,6 +78,7 @@ class PromptManager:
             content: 静态正文或 Jinja2 模板。functional 类型可为 None。
             source: 来源标识，如 'system', 'plugin:xxx', 'user'。
             is_active: 是否启用。
+            is_readonly: 是否只读（如 True 则禁止 WebUI 编辑），常用于系统和 legacy prompt。
 
         Returns:
             持久化后的 PromptEntry。
@@ -94,6 +96,7 @@ class PromptManager:
             content=content,
             source=source,
             is_active=is_active,
+            is_readonly=is_readonly,
         )
         self._cache[prompt_id] = entry
         logger.debug("Registered prompt: %s (category=%s, source=%s)", prompt_id, category, source)

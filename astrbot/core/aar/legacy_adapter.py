@@ -10,6 +10,7 @@ PersonaProxy 包装原有 Persona (Personality TypedDict) 对象。当旧插件�
 
 from __future__ import annotations
 
+import copy
 import inspect
 import logging
 import re
@@ -72,6 +73,14 @@ class PersonaProxy(dict):
         self._prompt_manager = prompt_manager
         self._intercepted_fragments: list[dict[str, str]] = []
 
+    def __deepcopy__(self, memo: dict[int, Any]) -> PersonaProxy:
+        copied = PersonaProxy(
+            copy.deepcopy(dict(self), memo), prompt_manager=self._prompt_manager
+        )
+        copied._original_prompt = self._original_prompt
+        memo[id(self)] = copied
+        return copied
+
     def __setitem__(self, key: str, value: Any) -> None:
         """拦截 persona["prompt"] = ... 的赋值操作。"""
         if key == "prompt":
@@ -93,7 +102,7 @@ class PersonaProxy(dict):
         # 计算 diff：移除旧内容后剩余的就是插件注入的增量
         diff = new_prompt
         if old_prompt and new_prompt.startswith(old_prompt):
-            diff = new_prompt[len(old_prompt):]
+            diff = new_prompt[len(old_prompt) :]
         elif old_prompt and new_prompt.endswith(old_prompt):
             diff = new_prompt[: len(new_prompt) - len(old_prompt)]
 
@@ -104,11 +113,13 @@ class PersonaProxy(dict):
         plugin_name = _extract_plugin_name_from_stack()
         prompt_id = f"legacy.{plugin_name}.auto"
 
-        self._intercepted_fragments.append({
-            "plugin": plugin_name,
-            "prompt_id": prompt_id,
-            "fragment": diff,
-        })
+        self._intercepted_fragments.append(
+            {
+                "plugin": plugin_name,
+                "prompt_id": prompt_id,
+                "fragment": diff,
+            }
+        )
 
         logger.warning(
             "[AAR Legacy Adapter] Plugin '%s' injected %d chars into persona prompt. "
@@ -149,6 +160,7 @@ class PersonaProxy(dict):
                     type="static",
                     content=fragment["fragment"],
                     source=f"legacy:{fragment['plugin']}",
+                    is_readonly=True,
                 )
             except Exception:
                 logger.exception(
@@ -167,6 +179,30 @@ class PersonaProxy(dict):
     def original_prompt(self) -> str:
         """获取未被修改的原始 prompt。"""
         return self._original_prompt
+
+
+async def flush_all_persona_proxy_archives(
+    personas: list[dict[str, Any]],
+) -> None:
+    """对给定的 persona 列表批量 flush 所有 PersonaProxy 的归档。
+
+    当 personas 列表包含 PersonaProxy 对象时，提取它们并调用 flush_archives()。
+
+    Args:
+        personas: personas_v3 列表（可能包含 PersonaProxy 对象）。
+    """
+    if not personas:
+        return
+
+    for persona in personas:
+        if isinstance(persona, PersonaProxy):
+            try:
+                await persona.flush_archives()
+            except Exception:
+                logger.exception(
+                    "Failed to flush archives for persona: %s",
+                    persona.get("name", "unknown"),
+                )
 
 
 class RequestSnapshot:
@@ -193,10 +229,16 @@ class RequestSnapshot:
         new_system_prompt = self.req.system_prompt or ""
         if new_system_prompt != self.orig_system_prompt:
             diff = new_system_prompt
-            if self.orig_system_prompt and new_system_prompt.startswith(self.orig_system_prompt):
-                diff = new_system_prompt[len(self.orig_system_prompt):]
-            elif self.orig_system_prompt and new_system_prompt.endswith(self.orig_system_prompt):
-                diff = new_system_prompt[: len(new_system_prompt) - len(self.orig_system_prompt)]
+            if self.orig_system_prompt and new_system_prompt.startswith(
+                self.orig_system_prompt
+            ):
+                diff = new_system_prompt[len(self.orig_system_prompt) :]
+            elif self.orig_system_prompt and new_system_prompt.endswith(
+                self.orig_system_prompt
+            ):
+                diff = new_system_prompt[
+                    : len(new_system_prompt) - len(self.orig_system_prompt)
+                ]
 
             diff = diff.strip()
             if diff:
@@ -221,7 +263,7 @@ class RequestSnapshot:
                         )
                     except Exception:
                         logger.exception("Failed to archive dirty inject.")
-            
+
             # 恢复为 AAR Pipeline 装配的纯净版（可选：如果强行隔离，则重置 req.system_prompt）
             # self.req.system_prompt = self.orig_system_prompt
 

@@ -538,6 +538,8 @@ class PromptEntry(TimestampMixin, SQLModel, table=True):
     """来源标识，如 'system', 'plugin:meme_manager', 'user', 'legacy.xxx.auto'。"""
     is_active: bool = Field(default=True, nullable=False)
     """是否启用，WebUI 可开关。"""
+    is_readonly: bool = Field(default=False, nullable=False)
+    """是否为只读，如 True 则不允许 WebUI 编辑（用于系统和 legacy prompt）。"""
 
     __table_args__ = (
         UniqueConstraint(

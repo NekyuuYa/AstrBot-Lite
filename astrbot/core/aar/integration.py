@@ -42,6 +42,7 @@ async def seed_system_prompts(prompt_mgr: PromptManager) -> None:
             "Always prioritize user safety."
         ),
         source="system",
+        is_readonly=True,
     )
 
     # Stage 6: Constraint — 默认输出约束
@@ -54,6 +55,7 @@ async def seed_system_prompts(prompt_mgr: PromptManager) -> None:
         content="",
         source="system",
         is_active=False,  # 默认不激活，用户可在 WebUI 启用并编辑内容
+        is_readonly=True,
     )
 
     logger.info("System prompts seeded.")

@@ -231,6 +231,11 @@ class AstrBotCoreLifecycle:
         # 扫描、注册插件、实例化插件类
         await self.plugin_manager.reload()
 
+        # 插件加载完成后，flush 所有 PersonaProxy 的 legacy prompt 归档
+        from astrbot.core.aar.legacy_adapter import flush_all_persona_proxy_archives
+
+        await flush_all_persona_proxy_archives(self.persona_mgr.personas_v3)
+
         # 根据配置实例化各个 Provider
         await self.provider_manager.initialize()
 

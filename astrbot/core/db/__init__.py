@@ -602,6 +602,7 @@ class BaseDatabase(abc.ABC):
         content: str | None = None,
         source: str = "system",
         is_active: bool = True,
+        is_readonly: bool = False,
     ) -> PromptEntry:
         """Create or update a prompt registry entry."""
         ...
