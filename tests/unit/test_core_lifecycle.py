@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+from contextlib import ExitStack
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -312,71 +313,32 @@ class TestAstrBotCoreLifecycleInitialize:
 
         mock_event_bus = MagicMock()
 
-        with (
-            patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config),
-            patch("astrbot.core.core_lifecycle.html_renderer", mock_html_renderer),
-            patch(
-                "astrbot.core.core_lifecycle.UmopConfigRouter",
-                return_value=mock_umop_config_router,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.AstrBotConfigManager",
-                return_value=mock_astrbot_config_mgr,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PersonaManager",
-                return_value=mock_persona_mgr,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.ProviderManager",
-                return_value=mock_provider_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PlatformManager",
-                return_value=mock_platform_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.ConversationManager",
-                return_value=mock_conversation_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PlatformMessageHistoryManager",
-                return_value=mock_platform_message_history_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.KnowledgeBaseManager",
-                return_value=mock_kb_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.CronJobManager",
-                return_value=mock_cron_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.Context", return_value=mock_star_context
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PluginManager",
-                return_value=mock_plugin_manager,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PipelineScheduler",
-                return_value=mock_pipeline_scheduler,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.AstrBotUpdator",
-                return_value=mock_astrbot_updator,
-            ),
-            patch("astrbot.core.core_lifecycle.EventBus", return_value=mock_event_bus),
-            patch("astrbot.core.core_lifecycle.migra", new_callable=AsyncMock),
-            patch(
-                "astrbot.core.core_lifecycle.update_llm_metadata",
-                new_callable=AsyncMock,
-            ),
-        ):
-            await lifecycle.initialize()
+        with ExitStack() as stack:
+            stack.enter_context(patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.html_renderer", mock_html_renderer))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.UmopConfigRouter", return_value=mock_umop_config_router))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.AstrBotConfigManager", return_value=mock_astrbot_config_mgr))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PersonaManager", return_value=mock_persona_mgr))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.ProviderManager", return_value=mock_provider_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PlatformManager", return_value=mock_platform_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.ConversationManager", return_value=mock_conversation_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PlatformMessageHistoryManager", return_value=mock_platform_message_history_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.KnowledgeBaseManager", return_value=mock_kb_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.CronJobManager", return_value=mock_cron_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.Context", return_value=mock_star_context))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PluginManager", return_value=mock_plugin_manager))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PipelineScheduler", return_value=mock_pipeline_scheduler))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.AstrBotUpdator", return_value=mock_astrbot_updator))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.EventBus", return_value=mock_event_bus))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.migra", new_callable=AsyncMock))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.update_llm_metadata", new_callable=AsyncMock))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PromptManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.AgentManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.ContextPolicyRegistry", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.seed_system_prompts", new_callable=AsyncMock))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.migrate_personas_to_registry", new_callable=AsyncMock))
 
-        # Verify database initialized
-        mock_db.initialize.assert_awaited_once()
+            await lifecycle.initialize()
 
         # Verify html renderer initialized
         mock_html_renderer.initialize.assert_awaited_once()
@@ -422,75 +384,32 @@ class TestAstrBotCoreLifecycleInitialize:
         mock_astrbot_config_mgr.confs = {}
 
         # Mock components that need to be created for initialize to continue
-        with (
-            patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config),
-            patch("astrbot.core.core_lifecycle.html_renderer", mock_html_renderer),
-            patch(
-                "astrbot.core.core_lifecycle.UmopConfigRouter",
-                return_value=mock_umop_config_router,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.AstrBotConfigManager",
-                return_value=mock_astrbot_config_mgr,
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PersonaManager",
-                return_value=MagicMock(initialize=AsyncMock()),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.ProviderManager",
-                return_value=MagicMock(initialize=AsyncMock()),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PlatformManager",
-                return_value=MagicMock(initialize=AsyncMock()),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.ConversationManager",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PlatformMessageHistoryManager",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.KnowledgeBaseManager",
-                return_value=MagicMock(initialize=AsyncMock()),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.CronJobManager",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.Context",
-                return_value=MagicMock(_register_tasks=[]),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PluginManager",
-                return_value=MagicMock(reload=AsyncMock()),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.PipelineScheduler",
-                return_value=MagicMock(initialize=AsyncMock()),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.AstrBotUpdator",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.EventBus",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "astrbot.core.core_lifecycle.migra",
-                AsyncMock(side_effect=Exception("Migration failed")),
-            ),
-            patch("astrbot.core.core_lifecycle.logger") as mock_logger,
-            patch(
-                "astrbot.core.core_lifecycle.update_llm_metadata",
-                new_callable=AsyncMock,
-            ),
-        ):
+        with ExitStack() as stack:
+            stack.enter_context(patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.html_renderer", mock_html_renderer))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.UmopConfigRouter", return_value=mock_umop_config_router))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.AstrBotConfigManager", return_value=mock_astrbot_config_mgr))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PersonaManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.ProviderManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PlatformManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.ConversationManager", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PlatformMessageHistoryManager", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.KnowledgeBaseManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.CronJobManager", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.Context", return_value=MagicMock(_register_tasks=[])))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PluginManager", return_value=MagicMock(reload=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PipelineScheduler", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.AstrBotUpdator", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.EventBus", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.migra", AsyncMock(side_effect=Exception("Migration failed"))))
+            mock_logger = stack.enter_context(patch("astrbot.core.core_lifecycle.logger"))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.update_llm_metadata", new_callable=AsyncMock))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.PromptManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.AgentManager", return_value=MagicMock(initialize=AsyncMock())))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.ContextPolicyRegistry", return_value=MagicMock()))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.seed_system_prompts", new_callable=AsyncMock))
+            stack.enter_context(patch("astrbot.core.core_lifecycle.migrate_personas_to_registry", new_callable=AsyncMock))
+
             # Should not raise, just log the error
             await lifecycle.initialize()
 

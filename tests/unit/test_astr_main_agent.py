@@ -42,6 +42,10 @@ def mock_context():
     ctx.persona_manager.get_persona_v3_by_id = MagicMock(return_value=None)
     ctx.get_llm_tool_manager.return_value = MagicMock()
     ctx.subagent_orchestrator = None
+    # AAR managers — set to None so getattr() returns None, not a MagicMock
+    ctx.aar_prompt_mgr = None
+    ctx.aar_agent_mgr = None
+    ctx.aar_ctx_policy = None
     return ctx
 
 
@@ -514,6 +518,19 @@ class TestApplyFileExtract:
 
 class TestEnsurePersonaAndSkills:
     """Tests for _ensure_persona_and_skills function."""
+
+    @pytest.fixture(autouse=True)
+    def _patch_aar_assemble(self, mock_context):
+        """Patch _aar_assemble_prompt so tests don't need real AAR managers."""
+        # Allow the aar_prompt_mgr guard to pass while still using the fake
+        mock_context.aar_prompt_mgr = MagicMock()
+
+        async def fake_aar(req, cfg, ctx, persona, persona_id, use_default, pmgr, amgr, cpol):
+            if persona and persona.get("prompt"):
+                req.system_prompt += f"\n# Persona Instructions\n\n{persona['prompt']}\n"
+
+        with patch("astrbot.core.astr_main_agent._aar_assemble_prompt", side_effect=fake_aar):
+            yield
 
     @pytest.mark.asyncio
     async def test_ensure_persona_from_session(self, mock_event, mock_context):
