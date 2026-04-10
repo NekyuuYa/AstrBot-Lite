@@ -62,7 +62,7 @@ _STANDARD_FIELDS: frozenset[str] = frozenset(
         "model",
         "api_key",
         "api_base",
-        "key",           # legacy multi-key list
+        "key",  # legacy multi-key list
         "timeout",
         "proxy",
         "api_version",
@@ -159,10 +159,9 @@ class ProviderLiteLLM(Provider):
         # When redirected from a legacy type, _litellm_original_type carries the
         # original adapter name (e.g. "openai_chat_completion") so we can derive
         # the correct LiteLLM model prefix.
-        original_type = (
-            provider_config.get("_litellm_original_type")
-            or provider_config.get("type", "litellm_chat_completion")
-        )
+        original_type = provider_config.get(
+            "_litellm_original_type"
+        ) or provider_config.get("type", "litellm_chat_completion")
 
         # ── API key: prefer explicit api_key, fall back to legacy key[] list ──
         api_key = provider_config.get("api_key", "") or ""
@@ -563,7 +562,8 @@ class ProviderLiteLLM(Provider):
             content = msg.get("content")
             if isinstance(content, list):
                 new_content = [
-                    p for p in content
+                    p
+                    for p in content
                     if not (isinstance(p, dict) and p.get("type") == "image_url")
                 ]
                 if not new_content:
@@ -592,8 +592,12 @@ class ProviderLiteLLM(Provider):
         **kwargs,
     ) -> LLMResponse:
         messages = await self._build_messages(
-            prompt, image_urls, contexts, system_prompt,
-            tool_calls_result, extra_user_content_parts,
+            prompt,
+            image_urls,
+            contexts,
+            system_prompt,
+            tool_calls_result,
+            extra_user_content_parts,
         )
         call_kwargs = self._build_litellm_kwargs(model)
         call_kwargs["messages"] = messages
@@ -618,9 +622,9 @@ class ProviderLiteLLM(Provider):
 
                 if tag == "rate_limit":
                     logger.warning(
-                        f"LiteLLM [{model_id}]: rate limited, retry {attempt+1}/{max_retries}"
+                        f"LiteLLM [{model_id}]: rate limited, retry {attempt + 1}/{max_retries}"
                     )
-                    await asyncio.sleep(min(2 ** attempt, 30))
+                    await asyncio.sleep(min(2**attempt, 30))
                     continue
 
                 if tag == "context_exceeded":
@@ -644,7 +648,7 @@ class ProviderLiteLLM(Provider):
                     current_func_tool = None
                     continue
 
-                if (tag == "no_vision" or self._is_image_moderation_error(e)):
+                if tag == "no_vision" or self._is_image_moderation_error(e):
                     if not image_fallback_used and image_urls:
                         logger.warning(
                             f"LiteLLM [{model_id}]: vision error, retrying without images"
@@ -665,7 +669,9 @@ class ProviderLiteLLM(Provider):
 
         if last_exc is not None:
             raise last_exc
-        raise Exception(f"LiteLLM [{self.model_name}] 请求失败（已重试 {max_retries} 次）")
+        raise Exception(
+            f"LiteLLM [{self.model_name}] 请求失败（已重试 {max_retries} 次）"
+        )
 
     async def text_chat_stream(
         self,
@@ -681,7 +687,12 @@ class ProviderLiteLLM(Provider):
         **kwargs,
     ) -> AsyncGenerator[LLMResponse, None]:
         messages = await self._build_messages(
-            prompt, image_urls, contexts, system_prompt, tool_calls_result, None,
+            prompt,
+            image_urls,
+            contexts,
+            system_prompt,
+            tool_calls_result,
+            None,
         )
         call_kwargs = self._build_litellm_kwargs(model)
         call_kwargs["messages"] = messages
@@ -705,9 +716,9 @@ class ProviderLiteLLM(Provider):
                 tag = self._classify_error(e)
                 if tag == "rate_limit":
                     logger.warning(
-                        f"LiteLLM [{model_id}] stream: rate limited, retry {attempt+1}"
+                        f"LiteLLM [{model_id}] stream: rate limited, retry {attempt + 1}"
                     )
-                    await asyncio.sleep(min(2 ** attempt, 30))
+                    await asyncio.sleep(min(2**attempt, 30))
                     continue
                 if tag == "auth_error":
                     raise Exception(
@@ -743,14 +754,22 @@ class ProviderLiteLLM(Provider):
                 for tc_delta in delta.tool_calls:
                     idx = getattr(tc_delta, "index", None) or 0
                     if idx not in accumulated_tool_calls:
-                        accumulated_tool_calls[idx] = {"id": "", "name": "", "arguments": ""}
+                        accumulated_tool_calls[idx] = {
+                            "id": "",
+                            "name": "",
+                            "arguments": "",
+                        }
                     if tc_delta.id:
                         accumulated_tool_calls[idx]["id"] = tc_delta.id
                     if tc_delta.function:
                         if tc_delta.function.name:
-                            accumulated_tool_calls[idx]["name"] += tc_delta.function.name
+                            accumulated_tool_calls[idx]["name"] += (
+                                tc_delta.function.name
+                            )
                         if tc_delta.function.arguments:
-                            accumulated_tool_calls[idx]["arguments"] += tc_delta.function.arguments
+                            accumulated_tool_calls[idx]["arguments"] += (
+                                tc_delta.function.arguments
+                            )
 
             if chunk.usage:
                 final_usage = self._extract_usage(chunk.usage)

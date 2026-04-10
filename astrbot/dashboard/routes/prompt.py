@@ -15,8 +15,8 @@ import logging
 from quart import request
 
 from astrbot.core.aar.prompt_manager import PromptManager
-from astrbot.dashboard.routes.route import Response, Route, RouteContext
 from astrbot.core.db.po import PromptCategory
+from astrbot.dashboard.routes.route import Response, Route, RouteContext
 
 logger = logging.getLogger("astrbot.dashboard.routes.prompt")
 
@@ -89,14 +89,20 @@ class PromptRoute(Route):
         category = body.get("category")
 
         if not prompt_id or not name or not category:
-            return Response().error(
-                "'prompt_id', 'name', and 'category' are required."
-            ).__dict__
+            return (
+                Response()
+                .error("'prompt_id', 'name', and 'category' are required.")
+                .__dict__
+            )
 
         if category not in PromptCategory.ALL:
-            return Response().error(
-                f"Invalid category '{category}'. Must be one of: {PromptCategory.ALL}"
-            ).__dict__
+            return (
+                Response()
+                .error(
+                    f"Invalid category '{category}'. Must be one of: {PromptCategory.ALL}"
+                )
+                .__dict__
+            )
 
         entry = await self._prompt_mgr.register_prompt(
             prompt_id=prompt_id,
@@ -122,9 +128,13 @@ class PromptRoute(Route):
 
         category = body.get("category", existing.category)
         if category not in PromptCategory.ALL:
-            return Response().error(
-                f"Invalid category '{category}'. Must be one of: {PromptCategory.ALL}"
-            ).__dict__
+            return (
+                Response()
+                .error(
+                    f"Invalid category '{category}'. Must be one of: {PromptCategory.ALL}"
+                )
+                .__dict__
+            )
 
         entry = await self._prompt_mgr.register_prompt(
             prompt_id=prompt_id,
@@ -150,13 +160,48 @@ class PromptRoute(Route):
     async def list_stages(self) -> dict:
         """GET /api/prompts/stages — 获取七大阶段枚举描述。"""
         stages = [
-            {"id": PromptCategory.SYSTEM_BASE, "order": 1, "name": "System Base", "description": "全局最底层协议（首因效应最强点）"},
-            {"id": PromptCategory.IDENTITY, "order": 2, "name": "Identity", "description": "确立'我是谁'——Persona 身份设定"},
-            {"id": PromptCategory.CONTEXT, "order": 3, "name": "Context", "description": "确立'我们在聊什么'——历史记录"},
-            {"id": PromptCategory.ABILITIES, "order": 4, "name": "Abilities", "description": "确立'我能做什么'——Tools/Skills"},
-            {"id": PromptCategory.INSTRUCTION, "order": 5, "name": "Instructions", "description": "确立'我现在要做什么'——任务指令"},
-            {"id": PromptCategory.CONSTRAINT, "order": 6, "name": "Constraints", "description": "否定性或强制性约束（近因效应最强点）"},
-            {"id": PromptCategory.REFINEMENT, "order": 7, "name": "Refinement", "description": "最后的修饰——Interceptors/Legacy"},
+            {
+                "id": PromptCategory.SYSTEM_BASE,
+                "order": 1,
+                "name": "System Base",
+                "description": "全局最底层协议（首因效应最强点）",
+            },
+            {
+                "id": PromptCategory.IDENTITY,
+                "order": 2,
+                "name": "Identity",
+                "description": "确立'我是谁'——Persona 身份设定",
+            },
+            {
+                "id": PromptCategory.CONTEXT,
+                "order": 3,
+                "name": "Context",
+                "description": "确立'我们在聊什么'——历史记录",
+            },
+            {
+                "id": PromptCategory.ABILITIES,
+                "order": 4,
+                "name": "Abilities",
+                "description": "确立'我能做什么'——Tools/Skills",
+            },
+            {
+                "id": PromptCategory.INSTRUCTION,
+                "order": 5,
+                "name": "Instructions",
+                "description": "确立'我现在要做什么'——任务指令",
+            },
+            {
+                "id": PromptCategory.CONSTRAINT,
+                "order": 6,
+                "name": "Constraints",
+                "description": "否定性或强制性约束（近因效应最强点）",
+            },
+            {
+                "id": PromptCategory.REFINEMENT,
+                "order": 7,
+                "name": "Refinement",
+                "description": "最后的修饰——Interceptors/Legacy",
+            },
         ]
         return Response().ok(stages).__dict__
 

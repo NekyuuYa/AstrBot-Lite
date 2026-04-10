@@ -235,6 +235,7 @@ class InternalAgentSubStage(Stage):
                         aar_prompt_mgr = getattr(self.ctx, "aar_prompt_mgr", None)
                         if aar_prompt_mgr:
                             from astrbot.core.aar.legacy_adapter import RequestSnapshot
+
                             snapshot = RequestSnapshot(req)
                     except ImportError:
                         pass

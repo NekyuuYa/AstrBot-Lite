@@ -1494,7 +1494,7 @@ class SQLiteDatabase(BaseDatabase):
             if source is not None:
                 query = query.where(PromptEntry.source == source)
             if active_only:
-                query = query.where(PromptEntry.is_active == True)
+                query = query.where(PromptEntry.is_active)
             query = query.order_by(
                 col(PromptEntry.category), desc(col(PromptEntry.priority))
             )
@@ -1585,9 +1585,7 @@ class SQLiteDatabase(BaseDatabase):
             result = await session.execute(query)
             agents = list(result.scalars().all())
             if tag is not None:
-                agents = [
-                    a for a in agents if a.tags and tag in a.tags
-                ]
+                agents = [a for a in agents if a.tags and tag in a.tags]
             return agents
 
     async def delete_agent(self, agent_id: str) -> None:

@@ -99,7 +99,12 @@ class PromptManager:
             is_readonly=is_readonly,
         )
         self._cache[prompt_id] = entry
-        logger.debug("Registered prompt: %s (category=%s, source=%s)", prompt_id, category, source)
+        logger.debug(
+            "Registered prompt: %s (category=%s, source=%s)",
+            prompt_id,
+            category,
+            source,
+        )
         return entry
 
     async def unregister_prompt(self, prompt_id: str) -> None:
@@ -144,9 +149,7 @@ class PromptManager:
             排序后的 PromptEntry 列表。
         """
         if prompt_ids is not None:
-            entries = [
-                self._cache[pid] for pid in prompt_ids if pid in self._cache
-            ]
+            entries = [self._cache[pid] for pid in prompt_ids if pid in self._cache]
         else:
             entries = list(self._cache.values())
 

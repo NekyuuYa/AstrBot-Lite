@@ -331,9 +331,12 @@ class ThirdPartyAgentSubStage(Stage):
         aar_prompt_mgr = None
         snapshot = None
         try:
-            aar_prompt_mgr = getattr(self.ctx.plugin_manager.context, "aar_prompt_mgr", None)
+            aar_prompt_mgr = getattr(
+                self.ctx.plugin_manager.context, "aar_prompt_mgr", None
+            )
             if aar_prompt_mgr:
                 from astrbot.core.aar.legacy_adapter import RequestSnapshot
+
                 snapshot = RequestSnapshot(req)
         except ImportError:
             pass
@@ -341,7 +344,7 @@ class ThirdPartyAgentSubStage(Stage):
         # call event hook
         if await call_event_hook(event, EventType.OnLLMRequestEvent, req):
             return
-            
+
         if snapshot and aar_prompt_mgr:
             await snapshot.compare_and_archive(aar_prompt_mgr)
 

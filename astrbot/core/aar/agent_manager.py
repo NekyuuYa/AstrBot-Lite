@@ -47,9 +47,7 @@ class AgentManager:
             self._cache[DEFAULT_AGENT_ID] = default
             logger.info("Created system default agent: %s", DEFAULT_AGENT_ID)
 
-        logger.info(
-            "AgentManager initialized with %d agents.", len(self._cache)
-        )
+        logger.info("AgentManager initialized with %d agents.", len(self._cache))
 
     # ------------------------------------------------------------------
     # CRUD
@@ -137,9 +135,7 @@ class AgentManager:
         if agent_id and agent_id in self._cache:
             return self._cache[agent_id]
         if agent_id:
-            logger.warning(
-                "Agent '%s' not found, falling back to default.", agent_id
-            )
+            logger.warning("Agent '%s' not found, falling back to default.", agent_id)
         return self._cache[DEFAULT_AGENT_ID]
 
     @property

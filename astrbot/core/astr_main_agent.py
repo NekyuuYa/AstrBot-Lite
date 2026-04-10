@@ -463,12 +463,21 @@ async def _ensure_persona_and_skills(
     # --- Prompt Assembly via AAR 7-stage pipeline ---
     aar_prompt_mgr: PromptManager = getattr(plugin_context, "aar_prompt_mgr", None)
     aar_agent_mgr: AgentManager = getattr(plugin_context, "aar_agent_mgr", None)
-    aar_ctx_policy: ContextPolicyRegistry = getattr(plugin_context, "aar_ctx_policy", None)
+    aar_ctx_policy: ContextPolicyRegistry = getattr(
+        plugin_context, "aar_ctx_policy", None
+    )
 
     if aar_prompt_mgr is not None:
         await _aar_assemble_prompt(
-            req, cfg, plugin_context, persona, persona_id,
-            use_webchat_special_default, aar_prompt_mgr, aar_agent_mgr, aar_ctx_policy,
+            req,
+            cfg,
+            plugin_context,
+            persona,
+            persona_id,
+            use_webchat_special_default,
+            aar_prompt_mgr,
+            aar_agent_mgr,
+            aar_ctx_policy,
         )
 
     tmgr = plugin_context.get_llm_tool_manager()

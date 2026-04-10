@@ -18,7 +18,6 @@ import time
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Literal
 
-import litellm
 from litellm import Router
 
 import astrbot.core.message.components as Comp
@@ -142,7 +141,9 @@ class ProviderRouter(ProviderLiteLLM):
             self._model_to_provider_id[inst.model_name] = provider_id
 
         if not self._resolved_model_list:
-            logger.warning(f"Router [{self.router_id}]: no valid member providers resolved.")
+            logger.warning(
+                f"Router [{self.router_id}]: no valid member providers resolved."
+            )
             return
 
         # Exclude 403-cooled deployments; fall back to all if everything is cooled.
@@ -391,7 +392,9 @@ class ProviderRouter(ProviderLiteLLM):
                         accumulated_tool_calls[idx]["id"] = tc_delta.id
                     if tc_delta.function:
                         if tc_delta.function.name:
-                            accumulated_tool_calls[idx]["name"] += tc_delta.function.name
+                            accumulated_tool_calls[idx]["name"] += (
+                                tc_delta.function.name
+                            )
                         if tc_delta.function.arguments:
                             accumulated_tool_calls[idx]["arguments"] += (
                                 tc_delta.function.arguments

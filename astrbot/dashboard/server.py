@@ -149,12 +149,8 @@ class AstrBotDashboard:
         self.live_chat_route = LiveChatRoute(self.context, db, core_lifecycle)
 
         # AAR Routes (Agent & Prompt management)
-        self.aar_agent_route = AgentRoute(
-            self.context, core_lifecycle.aar_agent_mgr
-        )
-        self.aar_prompt_route = PromptRoute(
-            self.context, core_lifecycle.aar_prompt_mgr
-        )
+        self.aar_agent_route = AgentRoute(self.context, core_lifecycle.aar_agent_mgr)
+        self.aar_prompt_route = PromptRoute(self.context, core_lifecycle.aar_prompt_mgr)
 
         self.app.add_url_rule(
             "/api/plug/<path:subpath>",

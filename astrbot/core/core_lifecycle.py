@@ -19,7 +19,11 @@ from asyncio import Queue
 from astrbot.api import logger, sp
 from astrbot.core import LogBroker, LogManager
 from astrbot.core.aar import AgentManager, ContextPolicyRegistry, PromptManager
-from astrbot.core.aar.integration import migrate_personas_to_registry, seed_system_prompts
+from astrbot.core.aar.integration import (
+    migrate_personas_to_registry,
+    seed_system_prompts,
+)
+from astrbot.core.aar.legacy_adapter import PersonaProxy
 from astrbot.core.astrbot_config_mgr import AstrBotConfigManager
 from astrbot.core.config.default import VERSION
 from astrbot.core.conversation_mgr import ConversationManager
@@ -166,17 +170,19 @@ class AstrBotCoreLifecycle:
         logger.info("AAR orchestration system initialized.")
 
         # Wrap personas with PersonaProxy to intercept legacy plugin modifications
-        from astrbot.core.aar.legacy_adapter import PersonaProxy
         import astrbot.core.persona_mgr as pm_module
-        
+
         pm_module.DEFAULT_PERSONALITY = PersonaProxy(
             pm_module.DEFAULT_PERSONALITY, prompt_manager=self.aar_prompt_mgr
         )
-        
+
         for i, p in enumerate(self.persona_mgr.personas_v3):
             proxy = PersonaProxy(p, prompt_manager=self.aar_prompt_mgr)
             self.persona_mgr.personas_v3[i] = proxy
-            if self.persona_mgr.selected_default_persona_v3 and p["name"] == self.persona_mgr.selected_default_persona_v3["name"]:
+            if (
+                self.persona_mgr.selected_default_persona_v3
+                and p["name"] == self.persona_mgr.selected_default_persona_v3["name"]
+            ):
                 self.persona_mgr.selected_default_persona_v3 = proxy
 
         # 初始化供应商管理器
