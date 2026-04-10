@@ -4,6 +4,9 @@
   "providers": {
     "title": "Model Providers",
     "settings": "Settings",
+    "basicConfig": "Basic Configuration",
+    "providerLabel": "Provider",
+    "providerHint": "Select a large-model service provider",
     "addProvider": "Add Source",
     "providerType": "Provider Type",
     "tabs": {
@@ -95,6 +98,10 @@
   "providerSources": {
     "title": "Sources",
     "add": "Add",
+    "routerListTitle": "Router List",
+    "addRouter": "Add Router",
+    "selectCreatedRouter": "Select Existing Router",
+    "noRouters": "No routers available",
     "empty": "No sources added yet",
     "selectHint": "Select or create a source from the left list to configure",
     "selectCreated": "Select existing source",
@@ -145,6 +152,7 @@
     "manualDialogPreviewHint": "Format usually: sourceId/modelName",
     "manualModelRequired": "Model name cannot be empty",
     "manualModelExists": "Model definition already exists",
+    "idChangeWarning": "Changing the ID is not recommended because it may break related configuration that points to this model.",
     "configure": "Fine-tuning",
     "tooltips": {
       "providerId": "Provider ID",
@@ -154,7 +162,15 @@
   "routers": {
     "title": "Router Config",
     "activeCount": "{count} models active",
+    "prioritySuffix": "active",
+    "priorityAbbrev": "PRIO",
+    "routerManagerTitle": "Model Router Management",
+    "routerManagerHint": "Select or create a router group from the left to start configuring.",
+    "routerIdHint": "Unique identifier for this router",
+    "sourceIdHint": "Unique identifier for this provider source",
     "strategy": "Scheduling Strategy",
+    "strategyLabel": "Routing Strategy",
+    "strategyHint": "Determines how requests are distributed",
     "modelList": "Model Pool (Sorted by Priority)",
     "priority": "Priority",
     "strategies": {

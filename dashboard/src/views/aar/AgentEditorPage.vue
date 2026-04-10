@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
+import DialogOptionSelector from '@/components/shared/DialogOptionSelector.vue'
 import '@/styles/dashboard-shell.css'
 
 const props = defineProps<{ agentId?: string }>()
@@ -33,7 +34,7 @@ const form = ref<any>({
   skills: [],
   context_policy: 'sys.batch_eviction',
   interceptors: [],
-  config: {},
+  config: defaultCapConfig(),
   tags: [],
 })
 const tagInput = ref('')
@@ -48,67 +49,18 @@ const stages = ref<any[]>([])
 
 // Persona options
 const allPersonas = ref<any[]>([])
-const personaOptions = computed(() => [
-  { title: tm('editor.noPersona') || '(None)', value: null },
-  ...allPersonas.value.map((p: any) => ({ title: p.persona_id, value: p.persona_id })),
-])
 
-// Tools transfer state
 const allTools = ref<any[]>([])
-const toolSearch = ref('')
-const toolSelectedSearch = ref('')
-const toolLeftChecked = ref<string[]>([])
-const toolRightChecked = ref<string[]>([])
-
-const availableToolItems = computed(() =>
-  allTools.value
-    .filter((t: any) => !(form.value.tools || []).includes(t.name))
-    .filter((t: any) => !toolSearch.value || t.name.toLowerCase().includes(toolSearch.value.toLowerCase()) || (t.description || '').toLowerCase().includes(toolSearch.value.toLowerCase()))
-)
-const selectedToolItems = computed(() =>
-  (form.value.tools || [])
-    .map((name: string) => allTools.value.find((t: any) => t.name === name) || { name, description: '', origin_name: '' })
-    .filter((t: any) => !toolSelectedSearch.value || t.name.toLowerCase().includes(toolSelectedSearch.value.toLowerCase()))
-)
-
-function moveToolsToSelected() {
-  for (const name of toolLeftChecked.value) {
-    if (!form.value.tools.includes(name)) form.value.tools.push(name)
-  }
-  toolLeftChecked.value = []
-}
-function moveToolsToAvailable() {
-  form.value.tools = (form.value.tools || []).filter((n: string) => !toolRightChecked.value.includes(n))
-  toolRightChecked.value = []
-}
-
-// Skills transfer state
 const allSkills = ref<any[]>([])
-const skillSearch = ref('')
-const skillSelectedSearch = ref('')
-const skillLeftChecked = ref<string[]>([])
-const skillRightChecked = ref<string[]>([])
 
-const availableSkillItems = computed(() =>
-  allSkills.value
-    .filter((s: any) => !(form.value.skills || []).includes(s.name))
-    .filter((s: any) => !skillSearch.value || s.name.toLowerCase().includes(skillSearch.value.toLowerCase()))
-)
-const selectedSkillItems = computed(() =>
-  (form.value.skills || [])
-    .map((name: string) => allSkills.value.find((s: any) => s.name === name) || { name, description: '' })
-    .filter((s: any) => !skillSelectedSearch.value || s.name.toLowerCase().includes(skillSelectedSearch.value.toLowerCase()))
-)
-
-function moveSkillsToSelected() {
-  for (const name of skillLeftChecked.value) {
-    if (!form.value.skills.includes(name)) form.value.skills.push(name)
+// Capability config helpers
+function defaultCapConfig() {
+  return {
+    knowledgebase: { enabled: false, kb_names: [] as string[], fusion_top_k: 3, final_top_k: 3, agentic_mode: false },
+    websearch: { enabled: false, provider: 'tavily', tavily_key: [] as string[], bocha_key: [] as string[], brave_key: [] as string[], baidu_key: '', show_link: true },
+    computer_use: { runtime: 'none', require_admin: false, booter: 'shipyard_neo', neo_endpoint: '', neo_token: '', neo_profile: '', neo_ttl: 600 },
+    proactive: { enabled: false },
   }
-  skillLeftChecked.value = []
-}
-function moveSkillsToAvailable() {
-  form.value.skills = (form.value.skills || []).filter((n: string) => !skillRightChecked.value.includes(n))
-  skillRightChecked.value = []
 }
 
 // Snackbar
@@ -148,6 +100,38 @@ const policyOptions = [
   { title: tm('policies.sys.batch_eviction') || 'sys.batch_eviction', value: 'sys.batch_eviction' },
 ]
 
+const personaSelectorItems = computed(() =>
+  allPersonas.value.map((p: any) => ({
+    title: p.persona_id,
+    value: p.persona_id,
+    subtitle: p.system_prompt || ''
+  }))
+)
+
+const contextPolicySelectorItems = computed(() =>
+  policyOptions.map((policy) => ({
+    title: policy.title,
+    value: policy.value,
+    subtitle: policy.value
+  }))
+)
+
+const toolSelectorItems = computed(() =>
+  allTools.value.map((tool: any) => ({
+    title: tool.name,
+    value: tool.name,
+    subtitle: tool.description || tool.origin_name || ''
+  }))
+)
+
+const skillSelectorItems = computed(() =>
+  allSkills.value.map((skill: any) => ({
+    title: skill.name,
+    value: skill.name,
+    subtitle: skill.description || ''
+  }))
+)
+
 // --- API ---
 async function loadAgent() {
   if (isNew.value) return
@@ -156,6 +140,8 @@ async function loadAgent() {
     const res = await axios.get(`/api/agents/${currentAgentId.value}`)
     if (res.data.status === 'ok') {
       const data = res.data.data
+      const defaults = defaultCapConfig()
+      const rawCfg = data.config || {}
       form.value = {
         agent_id: data.agent_id || '',
         name: data.name || '',
@@ -165,7 +151,13 @@ async function loadAgent() {
         skills: data.skills || [],
         context_policy: data.context_policy || 'sys.batch_eviction',
         interceptors: data.interceptors || [],
-        config: data.config || {},
+        config: {
+          ...rawCfg,
+          knowledgebase: { ...defaults.knowledgebase, ...(rawCfg.knowledgebase || {}) },
+          websearch: { ...defaults.websearch, ...(rawCfg.websearch || {}) },
+          computer_use: { ...defaults.computer_use, ...(rawCfg.computer_use || {}) },
+          proactive: { ...defaults.proactive, ...(rawCfg.proactive || {}) },
+        },
         tags: data.tags || [],
       }
     }
@@ -358,27 +350,43 @@ onMounted(async () => {
         </div>
         <div class="dashboard-card dashboard-card--padded mb-5">
           <div class="dashboard-form-grid mb-3">
-            <v-autocomplete
-              v-model="form.persona_id"
-              :label="tm('editor.persona')"
-              :hint="tm('editor.personaHint')"
-              :items="personaOptions"
-              persistent-hint
-              density="compact"
-              variant="outlined"
-              clearable
-              item-title="title"
-              item-value="value"
-            />
-            <v-select
-              v-model="form.context_policy"
-              :label="tm('editor.contextPolicy')"
-              :items="policyOptions"
-              :hint="tm('editor.contextPolicyHint')"
-              persistent-hint
-              density="compact"
-              variant="outlined"
-            />
+            <div class="selector-wrap">
+              <div class="selector-label">{{ tm('editor.persona') }}</div>
+              <div class="selector-card">
+                <DialogOptionSelector
+                  v-model="form.persona_id"
+                  :items="personaSelectorItems"
+                  :title="tm('editor.selector.personaDialogTitle')"
+                  :hint="tm('editor.personaHint')"
+                  :button-text="tm('editor.selector.openButton')"
+                  :search-placeholder="tm('editor.selector.searchPlaceholder')"
+                  :not-selected-text="tm('editor.noPersona')"
+                  :clear-text="tm('editor.selector.clearSelection')"
+                  :empty-text="tm('editor.selector.empty')"
+                  :confirm-text="tm('promptPicker.confirm')"
+                  :cancel-text="tm('actions.cancel')"
+                  clearable
+                />
+              </div>
+            </div>
+
+            <div class="selector-wrap">
+              <div class="selector-label">{{ tm('editor.contextPolicy') }}</div>
+              <div class="selector-card">
+                <DialogOptionSelector
+                  v-model="form.context_policy"
+                  :items="contextPolicySelectorItems"
+                  :title="tm('editor.selector.contextPolicyDialogTitle')"
+                  :hint="tm('editor.contextPolicyHint')"
+                  :button-text="tm('editor.selector.openButton')"
+                  :search-placeholder="tm('editor.selector.searchPlaceholder')"
+                  :not-selected-text="tm('editor.selector.notSelected')"
+                  :empty-text="tm('editor.selector.empty')"
+                  :confirm-text="tm('promptPicker.confirm')"
+                  :cancel-text="tm('actions.cancel')"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -390,45 +398,319 @@ onMounted(async () => {
         </div>
         <div class="dashboard-card dashboard-card--padded mb-5">
           <div class="dashboard-form-grid mb-3">
-            <!-- Tools Select -->
-            <v-autocomplete
-              v-model="form.tools"
-              :items="allTools"
-              item-title="name"
-              item-value="name"
-              multiple
-              chips
-              closable-chips
-              clearable
-              variant="outlined"
-              density="compact"
-              :label="tm('editor.toolsLabel')"
-              :hint="tm('editor.toolsHint')"
-              persistent-hint
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :subtitle="item.raw.description"></v-list-item>
-              </template>
-            </v-autocomplete>
+            <div class="selector-wrap">
+              <div class="selector-label">{{ tm('editor.toolsLabel') }}</div>
+              <div class="selector-card">
+                <DialogOptionSelector
+                  v-model="form.tools"
+                  :items="toolSelectorItems"
+                  :title="tm('editor.selector.toolsDialogTitle')"
+                  :hint="tm('editor.toolsHint')"
+                  :button-text="tm('editor.selector.openButton')"
+                  :search-placeholder="tm('editor.selector.searchPlaceholder')"
+                  :not-selected-text="tm('editor.selector.notSelected')"
+                  :empty-text="tm('editor.selector.empty')"
+                  :selected-count-template="tm('editor.selector.selectedCount')"
+                  :confirm-text="tm('promptPicker.confirm')"
+                  :cancel-text="tm('actions.cancel')"
+                  multiple
+                />
+              </div>
+            </div>
 
-            <!-- Skills Select -->
-            <v-autocomplete
-              v-model="form.skills"
-              :items="allSkills"
-              item-title="name"
-              item-value="name"
-              multiple
-              chips
-              closable-chips
-              clearable
-              variant="outlined"
-              density="compact"
-              :label="tm('editor.skillsLabel')"
-              :hint="tm('editor.skillsHint')"
-              persistent-hint
-            ></v-autocomplete>
+            <div class="selector-wrap">
+              <div class="selector-label">{{ tm('editor.skillsLabel') }}</div>
+              <div class="selector-card">
+                <DialogOptionSelector
+                  v-model="form.skills"
+                  :items="skillSelectorItems"
+                  :title="tm('editor.selector.skillsDialogTitle')"
+                  :hint="tm('editor.skillsHint')"
+                  :button-text="tm('editor.selector.openButton')"
+                  :search-placeholder="tm('editor.selector.searchPlaceholder')"
+                  :not-selected-text="tm('editor.selector.notSelected')"
+                  :empty-text="tm('editor.selector.empty')"
+                  :selected-count-template="tm('editor.selector.selectedCount')"
+                  :confirm-text="tm('promptPicker.confirm')"
+                  :cancel-text="tm('actions.cancel')"
+                  multiple
+                />
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Section: Capabilities -->
+        <div class="dashboard-section-head">
+          <div>
+            <div class="dashboard-section-title">{{ tm('editor.capabilities') }}</div>
+            <div class="dashboard-section-subtitle">{{ tm('editor.capabilitiesHint') }}</div>
+          </div>
+        </div>
+        <v-expansion-panels variant="accordion" class="mb-5">
+
+          <!-- Knowledge Base -->
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <v-icon size="18">mdi-database-outline</v-icon>
+                <span>{{ tm('editor.cap.knowledgebase.title') }}</span>
+                <v-chip v-if="form.config.knowledgebase.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+              </div>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-switch
+                v-model="form.config.knowledgebase.enabled"
+                :label="tm('editor.cap.knowledgebase.enable')"
+                :hint="tm('editor.cap.knowledgebase.enableHint')"
+                persistent-hint
+                density="compact"
+                color="primary"
+                class="mb-3"
+              />
+              <div v-if="form.config.knowledgebase.enabled">
+                <v-combobox
+                  v-model="form.config.knowledgebase.kb_names"
+                  :label="tm('editor.cap.knowledgebase.names')"
+                  :hint="tm('editor.cap.knowledgebase.namesHint')"
+                  persistent-hint
+                  density="compact"
+                  variant="outlined"
+                  multiple
+                  chips
+                  closable-chips
+                  class="mb-3"
+                />
+                <div class="dashboard-form-grid mb-3">
+                  <v-text-field
+                    v-model.number="form.config.knowledgebase.fusion_top_k"
+                    :label="tm('editor.cap.knowledgebase.fusionTopK')"
+                    :hint="tm('editor.cap.knowledgebase.fusionTopKHint')"
+                    persistent-hint
+                    type="number"
+                    density="compact"
+                    variant="outlined"
+                  />
+                  <v-text-field
+                    v-model.number="form.config.knowledgebase.final_top_k"
+                    :label="tm('editor.cap.knowledgebase.finalTopK')"
+                    :hint="tm('editor.cap.knowledgebase.finalTopKHint')"
+                    persistent-hint
+                    type="number"
+                    density="compact"
+                    variant="outlined"
+                  />
+                </div>
+                <v-switch
+                  v-model="form.config.knowledgebase.agentic_mode"
+                  :label="tm('editor.cap.knowledgebase.agenticMode')"
+                  :hint="tm('editor.cap.knowledgebase.agenticModeHint')"
+                  persistent-hint
+                  density="compact"
+                  color="primary"
+                />
+              </div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Web Search -->
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <v-icon size="18">mdi-web</v-icon>
+                <span>{{ tm('editor.cap.websearch.title') }}</span>
+                <v-chip v-if="form.config.websearch.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+              </div>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-switch
+                v-model="form.config.websearch.enabled"
+                :label="tm('editor.cap.websearch.enable')"
+                :hint="tm('editor.cap.websearch.enableHint')"
+                persistent-hint
+                density="compact"
+                color="primary"
+                class="mb-3"
+              />
+              <div v-if="form.config.websearch.enabled">
+                <div class="dashboard-form-grid mb-3">
+                  <v-select
+                    v-model="form.config.websearch.provider"
+                    :label="tm('editor.cap.websearch.provider')"
+                    :items="[
+                      { title: 'Tavily', value: 'tavily' },
+                      { title: 'BoCha', value: 'bocha' },
+                      { title: 'Brave Search', value: 'brave' },
+                      { title: tm('editor.cap.websearch.baiduProvider'), value: 'baidu_ai_search' },
+                    ]"
+                    density="compact"
+                    variant="outlined"
+                  />
+                  <v-switch
+                    v-model="form.config.websearch.show_link"
+                    :label="tm('editor.cap.websearch.showLink')"
+                    density="compact"
+                    color="primary"
+                  />
+                </div>
+                <v-combobox
+                  v-if="form.config.websearch.provider === 'tavily'"
+                  v-model="form.config.websearch.tavily_key"
+                  :label="tm('editor.cap.websearch.tavilyKey')"
+                  :hint="tm('editor.cap.websearch.keyHint')"
+                  persistent-hint
+                  density="compact"
+                  variant="outlined"
+                  multiple
+                  chips
+                  closable-chips
+                  class="mb-3"
+                />
+                <v-combobox
+                  v-if="form.config.websearch.provider === 'bocha'"
+                  v-model="form.config.websearch.bocha_key"
+                  :label="tm('editor.cap.websearch.bochaKey')"
+                  :hint="tm('editor.cap.websearch.keyHint')"
+                  persistent-hint
+                  density="compact"
+                  variant="outlined"
+                  multiple
+                  chips
+                  closable-chips
+                  class="mb-3"
+                />
+                <v-combobox
+                  v-if="form.config.websearch.provider === 'brave'"
+                  v-model="form.config.websearch.brave_key"
+                  :label="tm('editor.cap.websearch.braveKey')"
+                  :hint="tm('editor.cap.websearch.keyHint')"
+                  persistent-hint
+                  density="compact"
+                  variant="outlined"
+                  multiple
+                  chips
+                  closable-chips
+                  class="mb-3"
+                />
+                <v-text-field
+                  v-if="form.config.websearch.provider === 'baidu_ai_search'"
+                  v-model="form.config.websearch.baidu_key"
+                  :label="tm('editor.cap.websearch.baiduKey')"
+                  density="compact"
+                  variant="outlined"
+                  class="mb-3"
+                />
+              </div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Computer Use -->
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <v-icon size="18">mdi-monitor</v-icon>
+                <span>{{ tm('editor.cap.computerUse.title') }}</span>
+                <v-chip v-if="form.config.computer_use.runtime !== 'none'" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+              </div>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <div class="dashboard-form-grid mb-3">
+                <v-select
+                  v-model="form.config.computer_use.runtime"
+                  :label="tm('editor.cap.computerUse.runtime')"
+                  :hint="tm('editor.cap.computerUse.runtimeHint')"
+                  persistent-hint
+                  :items="[
+                    { title: tm('editor.cap.computerUse.runtimeNone'), value: 'none' },
+                    { title: tm('editor.cap.computerUse.runtimeLocal'), value: 'local' },
+                    { title: tm('editor.cap.computerUse.runtimeSandbox'), value: 'sandbox' },
+                  ]"
+                  density="compact"
+                  variant="outlined"
+                />
+                <v-switch
+                  v-model="form.config.computer_use.require_admin"
+                  :label="tm('editor.cap.computerUse.requireAdmin')"
+                  :hint="tm('editor.cap.computerUse.requireAdminHint')"
+                  persistent-hint
+                  density="compact"
+                  color="primary"
+                />
+              </div>
+              <div v-if="form.config.computer_use.runtime === 'sandbox'">
+                <v-select
+                  v-model="form.config.computer_use.booter"
+                  :label="tm('editor.cap.computerUse.booter')"
+                  :items="[
+                    { title: 'Shipyard Neo', value: 'shipyard_neo' },
+                    { title: 'Shipyard', value: 'shipyard' },
+                  ]"
+                  density="compact"
+                  variant="outlined"
+                  class="mb-3"
+                />
+                <div v-if="form.config.computer_use.booter === 'shipyard_neo'" class="dashboard-form-grid mb-3">
+                  <v-text-field
+                    v-model="form.config.computer_use.neo_endpoint"
+                    :label="tm('editor.cap.computerUse.neoEndpoint')"
+                    :hint="tm('editor.cap.computerUse.neoEndpointHint')"
+                    persistent-hint
+                    density="compact"
+                    variant="outlined"
+                  />
+                  <v-text-field
+                    v-model="form.config.computer_use.neo_token"
+                    :label="tm('editor.cap.computerUse.neoToken')"
+                    :hint="tm('editor.cap.computerUse.neoTokenHint')"
+                    persistent-hint
+                    density="compact"
+                    variant="outlined"
+                    type="password"
+                  />
+                  <v-text-field
+                    v-model="form.config.computer_use.neo_profile"
+                    :label="tm('editor.cap.computerUse.neoProfile')"
+                    :hint="tm('editor.cap.computerUse.neoProfileHint')"
+                    persistent-hint
+                    density="compact"
+                    variant="outlined"
+                  />
+                  <v-text-field
+                    v-model.number="form.config.computer_use.neo_ttl"
+                    :label="tm('editor.cap.computerUse.neoTtl')"
+                    :hint="tm('editor.cap.computerUse.neoTtlHint')"
+                    persistent-hint
+                    type="number"
+                    density="compact"
+                    variant="outlined"
+                  />
+                </div>
+              </div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Proactive -->
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <v-icon size="18">mdi-clock-alert-outline</v-icon>
+                <span>{{ tm('editor.cap.proactive.title') }}</span>
+                <v-chip v-if="form.config.proactive.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+              </div>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-switch
+                v-model="form.config.proactive.enabled"
+                :label="tm('editor.cap.proactive.enable')"
+                :hint="tm('editor.cap.proactive.enableHint')"
+                persistent-hint
+                density="compact"
+                color="primary"
+              />
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+        </v-expansion-panels>
 
         <!-- Section: Prompt Orchestration -->
         <div class="dashboard-section-head">
@@ -566,46 +848,22 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.transfer-box {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.transfer-panel {
-  flex: 1;
-  border: 1px solid rgba(128, 128, 128, 0.2);
-  border-radius: 8px;
-  padding: 12px;
-  min-height: 200px;
-  max-height: 280px;
-  display: flex;
-  flex-direction: column;
-}
-
-.transfer-panel-header {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--dashboard-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-}
-
-.transfer-list {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.transfer-item {
-  padding: 2px 0;
-}
-
-.transfer-actions {
+.selector-wrap {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  justify-content: center;
-  padding-top: 44px;
+}
+
+.selector-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dashboard-muted);
+}
+
+.selector-card {
+  border: 1px solid rgba(var(--v-border-color), 0.3);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(var(--v-theme-surface), 0.8);
 }
 </style>

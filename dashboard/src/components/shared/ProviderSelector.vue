@@ -131,7 +131,7 @@
                 </template>
                 <v-list-item-title class="font-weight-bold">
                   {{ group.name }}
-                  <v-chip v-if="group.isRouter" size="x-small" color="primary" variant="flat" class="ms-2" label>ROUTER</v-chip>
+                  <v-chip v-if="group.isRouter" size="x-small" color="primary" variant="flat" class="ms-2" label>{{ tm('providerSelector.routerBadge') }}</v-chip>
                 </v-list-item-title>
                 <template v-slot:append>
                   <v-chip size="x-small" variant="tonal">{{ group.items.length }}</v-chip>
@@ -166,7 +166,7 @@
         <div v-else-if="!loading && providerList.length === 0" class="text-center py-12">
           <v-icon size="80" color="grey-lighten-2">mdi-api-off</v-icon>
           <p class="text-h4 text-grey-darken-1 mt-4">{{ tm('providerSelector.noProviders') }}</p>
-          <p class="text-body-2 text-grey mt-1">请先在模型枢纽中配置服务商</p>
+          <p class="text-body-2 text-grey mt-1">{{ tm('providerSelector.noProvidersHint') }}</p>
         </div>
       </v-card-text>
       
@@ -272,7 +272,7 @@ const groupedProviders = computed(() => {
     // 识别 Router
     const isRouter = item.type === 'model_router'
     const providerId = isRouter ? 'model_router' : (item.provider || 'unknown')
-    const groupName = isRouter ? '模型路由 (Routers)' : (item.provider_display_name || providerId.toUpperCase())
+    const groupName = isRouter ? tm('providerSelector.routerBadge') : (item.provider_display_name || providerId.toUpperCase())
     
     if (!groups[groupName]) {
       groups[groupName] = {

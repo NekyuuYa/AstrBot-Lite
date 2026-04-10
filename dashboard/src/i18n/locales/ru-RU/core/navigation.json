@@ -33,6 +33,7 @@
     "faq": "FAQ",
     "github": "GitHub",
     "drag": "Перетащить",
+    "costAnalysis": "Анализ затрат",
     "groups": {
         "more": "Дополнительно"
     },
@@ -44,7 +45,42 @@
         "selectVersion": "Выберите версию",
         "current": "Текущая"
     },
-    "configTabs": {
+    "headers": {
+        "welcome": "Добро пожаловать",
+        "status": "Статистика",
+        "instances": "Боты",
+        "agent": "Провайдеры моделей",
+        "toolbox": "Инструменты",
+        "plugins": "Плагины",
+        "monitor": "Мониторинг",
+        "analysis": "Анализ",
+        "config": "Конфигурация"
+    },
+    "agent": {
+        "providers": "Провайдеры моделей",
+        "subagent": "Оркестрация субагентов",
+        "persona": "Персонажи",
+        "agentHub": "Центр агентов",
+        "promptRegistry": "Реестр промптов"
+    },
+    "toolbox": {
+        "mcp": "MCP",
+        "skills": "Навыки",
+        "components": "Управление поведением",
+        "knowledgeBase": "База знаний"
+    },
+    "plugins": {
+        "installed": "Плагины AstrBot",
+        "market": "Магазин плагинов"
+    },
+    "monitor": {
+        "console": "Логи платформы",
+        "trace": "Трассировка",
+        "conversation": "Данные диалогов",
+        "cron": "Запланированные задачи"
+    },
+    "config": {
+        "title": "Конфигурация",
         "normal": "Обычная конфигурация",
         "system": "Системная конфигурация"
     }

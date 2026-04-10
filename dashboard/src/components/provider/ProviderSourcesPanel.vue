@@ -3,7 +3,7 @@
     <div class="provider-sources-head">
       <div class="provider-sources-title-wrap">
         <div class="provider-sources-title-row">
-          <h3 class="provider-sources-title">{{ selectedProviderType === 'routers' ? '路由列表' : tm('providerSources.title') }}</h3>
+          <h3 class="provider-sources-title">{{ selectedProviderType === 'routers' ? tm('providerSources.routerListTitle') : tm('providerSources.title') }}</h3>
           <v-chip size="x-small" variant="tonal" label>
             {{ displayedProviderSources.length }}
           </v-chip>
@@ -17,7 +17,7 @@
         rounded="xl"
         @click="emitAddSource(null)"
       >
-        {{ selectedProviderType === 'routers' ? '新增路由' : tm('providerSources.add') }}
+        {{ selectedProviderType === 'routers' ? tm('providerSources.addRouter') : tm('providerSources.add') }}
       </v-btn>
     </div>
 
@@ -28,7 +28,7 @@
           :items="mobileSourceItems"
           item-title="label"
           item-value="value"
-          :label="selectedProviderType === 'routers' ? '选择已创建的路由' : tm('providerSources.selectCreated')"
+          :label="selectedProviderType === 'routers' ? tm('providerSources.selectCreatedRouter') : tm('providerSources.selectCreated')"
           variant="solo-filled"
           density="comfortable"
           flat
@@ -95,7 +95,7 @@
     </div>
     <div v-else class="text-center py-8 px-4">
       <v-icon size="48" color="grey-lighten-1">mdi-api-off</v-icon>
-      <p class="text-grey mt-2">{{ selectedProviderType === 'routers' ? '暂无路由' : tm('providerSources.empty') }}</p>
+      <p class="text-grey mt-2">{{ selectedProviderType === 'routers' ? tm('providerSources.noRouters') : tm('providerSources.empty') }}</p>
     </div>
   </v-card>
 </template>

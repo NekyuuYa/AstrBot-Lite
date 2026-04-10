@@ -85,165 +85,12 @@
         }
       }
     },
-    "knowledgebase": {
-      "description": "Knowledge Base",
-      "kb_names": {
-        "description": "Knowledge Base List",
-        "hint": "Supports multiple selections"
-      },
-      "kb_fusion_top_k": {
-        "description": "Fusion Search Results Count",
-        "hint": "Number of results returned after fusing search results from multiple knowledge bases"
-      },
-      "kb_final_top_k": {
-        "description": "Final Results Count",
-        "hint": "Number of results retrieved from the knowledge base. Higher values may provide more relevant information but could also introduce noise. Adjust based on actual needs"
-      },
-      "kb_agentic_mode": {
-        "description": "Agentic Knowledge Base Retrieval",
-        "hint": "When enabled, knowledge base retrieval becomes an LLM Tool, allowing the model to autonomously decide when to query the knowledge base. Requires the model to support function calling."
-      }
-    },
-    "websearch": {
-      "description": "Web Search",
+    "agent": {
+      "description": "Agent",
+      "hint": "Configure the default agent for this bot instance. The agent manages persona, prompt orchestration, and tool authorization.",
       "provider_settings": {
-        "web_search": {
-          "description": "Enable Web Search"
-        },
-        "websearch_provider": {
-          "description": "Web Search Provider"
-        },
-        "websearch_tavily_key": {
-          "description": "Tavily API Key",
-          "hint": "Multiple keys can be added for rotation."
-        },
-        "websearch_bocha_key": {
-          "description": "BoCha API Key",
-          "hint": "Multiple keys can be added for rotation."
-        },
-        "websearch_brave_key": {
-          "description": "Brave Search API Key",
-          "hint": "Multiple keys can be added for rotation."
-        },
-        "websearch_baidu_app_builder_key": {
-          "description": "Baidu Qianfan Smart Cloud APP Builder API Key",
-          "hint": "Reference: [https://console.bce.baidu.com/iam/#/iam/apikey/list](https://console.bce.baidu.com/iam/#/iam/apikey/list)"
-        },
-        "web_search_link": {
-          "description": "Display Source Citations"
-        }
-      }
-    },
-    "file_extract": {
-      "description": "File Extract",
-      "provider_settings": {
-        "file_extract": {
-          "enable": {
-            "description": "Enable File Extract"
-          },
-          "provider": {
-            "description": "File Extract Provider"
-          },
-          "moonshotai_api_key": {
-            "description": "Moonshot AI API Key"
-          }
-        }
-      }
-    },
-    "agent_computer_use": {
-      "description": "Agent Computer Use",
-      "hint": "Allows the AstrBot to access and use your computer or an sandbox environment to perform more complex tasks. See [Sandbox Mode](https://docs.astrbot.app/use/astrbot-agent-sandbox.html), [Skills](https://docs.astrbot.app/use/skills.html)",
-      "provider_settings": {
-        "computer_use_runtime": {
-          "description": "Computer Use Runtime",
-          "hint": "sandbox means running in a sandbox environment, local means running in a local environment, none means disabling Computer Use. If skills are uploaded, choosing none will cause them to not be usable by the Agent."
-        },
-        "computer_use_require_admin": {
-          "description": "Require AstrBot Admin Permission",
-          "hint": "When enabled, AstrBot admin permission is required to use computer capabilities. Admins can be added in Platform Config. Use the /sid command to view admin IDs."
-        },
-        "sandbox": {
-          "booter": {
-            "description": "Sandbox Environment Driver"
-          },
-          "shipyard_neo_endpoint": {
-            "description": "Shipyard Neo API Endpoint",
-            "hint": "Bay API address, default http://127.0.0.1:8114."
-          },
-          "shipyard_neo_access_token": {
-            "description": "Shipyard Neo Access Token",
-            "hint": "Bay API Key (sk-bay-...). Leave empty for auto-discovery from credentials.json."
-          },
-          "shipyard_neo_profile": {
-            "description": "Shipyard Neo Profile",
-            "hint": "Sandbox profile for Shipyard Neo, e.g. python-default."
-          },
-          "shipyard_neo_ttl": {
-            "description": "Shipyard Neo Sandbox TTL",
-            "hint": "Sandbox time-to-live in seconds."
-          },
-          "shipyard_endpoint": {
-            "description": "Shipyard API Endpoint",
-            "hint": "API access address for Shipyard service."
-          },
-          "shipyard_access_token": {
-            "description": "Shipyard Access Token",
-            "hint": "Access token for accessing Shipyard service."
-          },
-          "shipyard_ttl": {
-            "description": "Shipyard Session TTL",
-            "hint": "Session time-to-live in seconds."
-          },
-          "shipyard_max_sessions": {
-            "description": "Shipyard Max Sessions",
-            "hint": "Maximum number of Shipyard sessions an instance can handle."
-          }
-        }
-      }
-    },
-    "proactive_capability": {
-      "description": "Proactive Agent",
-      "hint": "AstrBot will wake up, run your tasks, and deliver the results to you. See [Proactive Agent](https://docs.astrbot.app/en/use/proactive-agent.html)",
-      "provider_settings": {
-        "proactive_capability": {
-          "add_cron_tools": {
-            "description": "Enable",
-            "hint": "When enabled, related tools will be passed to the Agent to implement proactive Agent capabilities. You can tell AstrBot what to do at a future time, and it will be triggered on schedule to execute the task, and report the result back to you."
-          }
-        }
-      }
-    },
-    "truncate_and_compress": {
-      "hint": "[Context Management](https://docs.astrbot.app/en/use/context-compress.html)",
-      "description": "Context Management Strategy",
-      "provider_settings": {
-        "max_context_length": {
-          "description": "Maximum Conversation Turns",
-          "hint": "Discards the oldest parts when this count is exceeded. One conversation round counts as 1, -1 means unlimited"
-        },
-        "dequeue_context_length": {
-          "description": "Dequeue Conversation Turns",
-          "hint": "Number of conversation turns to discard at once when maximum context length is exceeded"
-        },
-        "context_limit_reached_strategy": {
-          "description": "Handling When Model Context Window is Exceeded",
-          "labels": [
-            "Truncate by Turns",
-            "Compress by LLM"
-          ],
-          "hint": "When 'Truncate by Turns' is selected, the oldest N conversation turns will be discarded based on the 'Dequeue Conversation Turns' setting above. When 'Compress by LLM' is selected, the specified model will be used for context compression."
-        },
-        "llm_compress_instruction": {
-          "description": "Context Compression Instruction",
-          "hint": "If empty, the default prompt will be used."
-        },
-        "llm_compress_keep_recent": {
-          "description": "Keep Recent Turns When Compressing",
-          "hint": "Always keep the most recent N turns of conversation when compressing context."
-        },
-        "llm_compress_provider_id": {
-          "description": "Model Provider ID for Context Compression",
-          "hint": "When left empty, will fall back to the 'Truncate by Turns' strategy."
+        "default_agent_id": {
+          "description": "Default Agent"
         }
       }
     },
@@ -1117,22 +964,22 @@
         "hint": "Only effective for qwen3-rerank models. Recommended to write in English."
       },
       "nvidia_rerank_api_base": {
-          "description": "API Base URL"
+        "description": "API Base URL"
       },
       "nvidia_rerank_api_key": {
-          "description": "API Key"
+        "description": "API Key"
       },
       "nvidia_rerank_model": {
-          "description": "Rerank Model Name",
-          "hint": "Please refer to the NVIDIA Docs for the model name."
+        "description": "Rerank Model Name",
+        "hint": "Please refer to the NVIDIA Docs for the model name."
       },
       "nvidia_rerank_model_endpoint": {
-          "description": "Custom Model Endpoint",
-          "hint": "Custom URL suffix endpoint, defaults to /reranking."
+        "description": "Custom Model Endpoint",
+        "hint": "Custom URL suffix endpoint, defaults to /reranking."
       },
       "nvidia_rerank_truncate": {
-          "description": "Text Truncation Strategy",
-          "hint": "Whether to truncate the input to fit the model's maximum context length when the input text is too long."
+        "description": "Text Truncation Strategy",
+        "hint": "Whether to truncate the input to fit the model's maximum context length when the input text is too long."
       },
       "launch_model_if_not_running": {
         "description": "Auto-start model if not running",

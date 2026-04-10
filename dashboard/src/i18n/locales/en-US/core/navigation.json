@@ -5,11 +5,42 @@
     "instances": "Instances",
     "agent": "Agent Core",
     "toolbox": "Toolbox",
-    "analysis": "Analysis"
+    "plugins": "Plugins",
+    "monitor": "Monitor",
+    "analysis": "Analysis",
+    "config": "Config"
   },
   "welcome": "Welcome",
   "dashboard": "Overview",
   "platforms": "Instances",
+  "agent": {
+    "providers": "Model Hub",
+    "subagent": "Sub-Agent Orchestration",
+    "persona": "Persona",
+    "agentHub": "Agent Hub",
+    "promptRegistry": "Prompt Registry"
+  },
+  "toolbox": {
+    "mcp": "MCP",
+    "skills": "Skills",
+    "components": "Behavior Management",
+    "knowledgeBase": "Knowledge Base"
+  },
+  "plugins": {
+    "installed": "AstrBot Plugins",
+    "market": "Plugin Marketplace"
+  },
+  "monitor": {
+    "console": "Platform Logs",
+    "trace": "Trace",
+    "conversation": "Conversation Data",
+    "cron": "Future Tasks"
+  },
+  "config": {
+    "title": "Configuration",
+    "normal": "Normal Config",
+    "system": "System Config"
+  },
   "providers": "Model Hub",
   "commands": "Commands",
   "persona": "Persona",

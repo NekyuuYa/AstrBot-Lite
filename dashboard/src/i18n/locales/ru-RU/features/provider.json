@@ -4,6 +4,9 @@
     "providers": {
         "title": "Сервис-провайдеры",
         "settings": "Настройки",
+        "basicConfig": "Базовая конфигурация",
+        "providerLabel": "Provider",
+        "providerHint": "Выберите провайдера больших моделей",
         "addProvider": "Добавить провайдера",
         "providerType": "Тип провайдера",
         "tabs": {
@@ -94,6 +97,10 @@
     "providerSources": {
         "title": "Источник провайдера",
         "add": "Добавить",
+        "routerListTitle": "Список маршрутов",
+        "addRouter": "Добавить маршрут",
+        "selectCreatedRouter": "Выбрать существующий маршрут",
+        "noRouters": "Маршрутов нет",
         "empty": "Источники не найдены",
         "selectHint": "Пожалуйста, выберите источник провайдера",
         "selectCreated": "Выбрать существующий источник",
@@ -143,10 +150,32 @@
         "manualDialogPreviewHint": "Будет выглядеть как: SourceID/ModelID",
         "manualModelRequired": "Укажите ID модели",
         "manualModelExists": "Эта модель уже добавлена",
+        "idChangeWarning": "Не рекомендуется менять ID, так как это может сломать связанные настройки, указывающие на эту модель.",
         "configure": "Настроить",
         "tooltips": {
             "providerId": "ID провайдера",
             "modelId": "ID модели"
+        }
+    },
+    "routers": {
+        "title": "Конфигурация маршрута",
+        "activeCount": "Активно моделей: {count}",
+        "prioritySuffix": "активно",
+        "priorityAbbrev": "PRIO",
+        "routerManagerTitle": "Управление модельными маршрутами",
+        "routerManagerHint": "Выберите или создайте группу маршрута слева, чтобы начать настройку.",
+        "routerIdHint": "Уникальный идентификатор этого маршрута",
+        "sourceIdHint": "Уникальный идентификатор этого источника провайдера",
+        "strategy": "Стратегия распределения",
+        "strategyLabel": "Стратегия маршрутизации",
+        "strategyHint": "Определяет, как распределяются запросы",
+        "modelList": "Пул моделей (сортировка по приоритету)",
+        "priority": "Приоритет",
+        "strategies": {
+            "priority": "Приоритетный отказ (Priority-Based)",
+            "shuffle": "Простое перемешивание (Simple Shuffle)",
+            "leastBusy": "Наименее занятый",
+            "latency": "Маршрутизация по задержке"
         }
     }
 }

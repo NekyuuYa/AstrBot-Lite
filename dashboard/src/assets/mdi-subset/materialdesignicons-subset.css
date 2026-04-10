@@ -1,4 +1,4 @@
-/* Auto-generated MDI subset – 264 icons */
+/* Auto-generated MDI subset – 268 icons */
 /* Do not edit manually. Run: pnpm run subset-icons */
 
 @font-face {
@@ -232,6 +232,10 @@
   content: "\F09DF";
 }
 
+.mdi-clock-alert-outline::before {
+  content: "\F05CE";
+}
+
 .mdi-clock-outline::before {
   content: "\F0150";
 }
@@ -334,6 +338,10 @@
 
 .mdi-database-off::before {
   content: "\F1640";
+}
+
+.mdi-database-outline::before {
+  content: "\F1632";
 }
 
 .mdi-database-refresh-outline::before {
@@ -510,6 +518,10 @@
 
 .mdi-format-list-bulleted::before {
   content: "\F0279";
+}
+
+.mdi-format-list-bulleted-square::before {
+  content: "\F0DD0";
 }
 
 .mdi-frequently-asked-questions::before {
@@ -694,6 +706,10 @@
 
 .mdi-minus-box::before {
   content: "\F0375";
+}
+
+.mdi-monitor::before {
+  content: "\F0379";
 }
 
 .mdi-monitor-dashboard::before {

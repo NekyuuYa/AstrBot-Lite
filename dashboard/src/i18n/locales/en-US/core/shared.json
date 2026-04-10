@@ -38,6 +38,7 @@
     "dialogTitle": "Select Provider",
     "loading": "Loading...",
     "noProviders": "No providers available",
+    "noProvidersHint": "Please configure providers in the Model Hub first.",
     "confirmSelection": "Confirm Selection",
     "cancelSelection": "Cancel",
     "clearSelection": "None",
@@ -46,7 +47,12 @@
     "createProvider": "Create Provider",
     "manageProviders": "Provider Management",
     "selectProviderPool": "Select Provider Pool...",
-    "selectedCount": "{count} provider(s) selected"
+    "selectedCount": "{count} provider(s) selected",
+    "routerBadge": "ROUTER"
+  },
+  "agentSelector": {
+    "label": "Select Agent",
+    "placeholder": "Search or select an agent"
   },
   "personaSelector": {
     "notSelected": "Not selected",

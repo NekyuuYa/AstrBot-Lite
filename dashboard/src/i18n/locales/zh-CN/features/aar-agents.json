@@ -60,13 +60,80 @@
     "transferSelected": "已选",
     "transferSearch": "搜索...",
     "transferEmpty": "暂无可选项",
+    "selector": {
+      "openButton": "打开选择器",
+      "personaDialogTitle": "选择关联人格",
+      "contextPolicyDialogTitle": "选择上下文策略",
+      "toolsDialogTitle": "选择授权工具",
+      "skillsDialogTitle": "选择授权技能",
+      "notSelected": "未选择",
+      "clearSelection": "清空选择",
+      "searchPlaceholder": "搜索...",
+      "empty": "暂无可选项",
+      "selectedCount": "已选择 {count} 项"
+    },
     "promptOrchestration": "Prompt 编排",
     "promptOrchestrationHint": "选择并排列此 Agent 引用的 Prompt 碎片，按七大阶段分组展示",
     "selectPrompts": "选择 Prompt",
     "noPrompts": "尚未关联任何 Prompt",
     "stageEmpty": "此阶段暂无 Prompt",
     "configJson": "高级配置 (JSON)",
-    "configJsonHint": "Agent 级别的自定义配置参数"
+    "configJsonHint": "Agent 级别的自定义配置参数",
+    "capabilities": "能力扩展",
+    "capabilitiesHint": "为此 Agent 启用扩展能力，各项配置优先于全局设置",
+    "cap": {
+      "enabled": "已启用",
+      "knowledgebase": {
+        "title": "知识库",
+        "enable": "启用知识库",
+        "enableHint": "启用后，Agent 将可以检索指定知识库获取相关信息",
+        "names": "知识库列表",
+        "namesHint": "输入知识库名称后按 Enter 添加",
+        "fusionTopK": "融合检索结果数",
+        "fusionTopKHint": "多个知识库检索结果融合后的返回结果数量",
+        "finalTopK": "最终返回结果数",
+        "finalTopKHint": "从知识库中检索到的结果数量，越大可能获得越多相关信息，但也可能引入噪音",
+        "agenticMode": "Agentic 知识库检索",
+        "agenticModeHint": "启用后，知识库检索将作为 LLM Tool，由模型自主决定何时调用知识库进行查询"
+      },
+      "websearch": {
+        "title": "网页搜索",
+        "enable": "启用网页搜索",
+        "enableHint": "启用后，Agent 将可以搜索互联网获取最新信息",
+        "provider": "搜索提供商",
+        "keyHint": "可添加多个 Key 进行轮询",
+        "tavilyKey": "Tavily API Key",
+        "bochaKey": "BoCha API Key",
+        "braveKey": "Brave Search API Key",
+        "baiduProvider": "百度千帆智能云",
+        "baiduKey": "百度千帆智能云 APP Builder API Key",
+        "showLink": "显示来源引用"
+      },
+      "computerUse": {
+        "title": "使用电脑能力",
+        "runtime": "运行环境",
+        "runtimeHint": "sandbox 为沙箱环境，local 为本地环境，none 为不启用",
+        "runtimeNone": "不启用",
+        "runtimeLocal": "本地",
+        "runtimeSandbox": "沙箱",
+        "requireAdmin": "需要管理员权限",
+        "requireAdminHint": "启用后，需要 AstrBot 管理员权限才能调用电脑能力",
+        "booter": "沙箱驱动器",
+        "neoEndpoint": "Shipyard Neo API Endpoint",
+        "neoEndpointHint": "默认 http://127.0.0.1:8114",
+        "neoToken": "Shipyard Neo 访问令牌",
+        "neoTokenHint": "Bay API Key（sk-bay-...），留空时自动发现",
+        "neoProfile": "Shipyard Neo Profile",
+        "neoProfileHint": "沙箱 profile，例如 python-default",
+        "neoTtl": "沙箱存活时间（秒）",
+        "neoTtlHint": "沙箱实例的生存时间（秒）"
+      },
+      "proactive": {
+        "title": "主动型能力",
+        "enable": "启用主动型能力",
+        "enableHint": "启用后，Agent 可以自主在特定时刻触发任务，实现主动型对话与执行"
+      }
+    }
   },
   "messages": {
     "loadFailed": "加载 Agent 列表失败",
@@ -101,6 +168,8 @@
     "confirm": "确认选择"
   },
   "policies": {
-    "sys.batch_eviction": "批量淘汰策略"
+    "sys": {
+      "batch_eviction": "批量淘汰策略"
+    }
   }
 }

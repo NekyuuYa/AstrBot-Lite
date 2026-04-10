@@ -4,6 +4,9 @@
   "providers": {
     "title": "模型提供商",
     "settings": "设置",
+    "basicConfig": "基础配置",
+    "providerLabel": "Provider",
+    "providerHint": "选择大模型服务提供商",
     "addProvider": "新增提供商源",
     "providerType": "提供商类型",
     "tabs": {
@@ -95,6 +98,10 @@
   "providerSources": {
     "title": "提供商源",
     "add": "新增",
+    "routerListTitle": "路由列表",
+    "addRouter": "新增路由",
+    "selectCreatedRouter": "选择已创建的路由",
+    "noRouters": "暂无路由",
     "empty": "暂无提供商源",
     "selectHint": "请选择一个提供商源",
     "selectCreated": "选择已创建的提供商源",
@@ -145,6 +152,7 @@
     "manualDialogPreviewHint": "生成规则：源ID/模型ID",
     "manualModelRequired": "请输入模型 ID",
     "manualModelExists": "该模型已存在",
+    "idChangeWarning": "不建议修改 ID，可能会导致指向该模型的相关配置失效。",
     "configure": "配置",
     "tooltips": {
       "providerId": "提供商 ID",
@@ -154,7 +162,15 @@
   "routers": {
     "title": "路由组配置",
     "activeCount": "{count} 个模型已激活",
+    "prioritySuffix": "激活",
+    "priorityAbbrev": "PRIO",
+    "routerManagerTitle": "模型路由管理",
+    "routerManagerHint": "从左侧选择或创建一个路由组以开始配置",
+    "routerIdHint": "该路由的唯一标识符",
+    "sourceIdHint": "该提供商源的唯一标识符",
     "strategy": "调度策略",
+    "strategyLabel": "路由策略",
+    "strategyHint": "决定请求如何分配",
     "modelList": "参与调度的模型池 (按优先级排列)",
     "priority": "优先级",
     "strategies": {

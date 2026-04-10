@@ -38,6 +38,7 @@
         "dialogTitle": "Выбор провайдера",
         "loading": "Загрузка...",
         "noProviders": "Доступных провайдеров нет",
+        "noProvidersHint": "Сначала настройте провайдеров в Model Hub.",
         "confirmSelection": "ОК",
         "cancelSelection": "Отмена",
         "clearSelection": "Сбросить выбор",
@@ -46,7 +47,12 @@
         "createProvider": "Создать провайдера",
         "manageProviders": "Управление провайдерами",
         "selectProviderPool": "Выбрать пул провайдеров...",
-        "selectedCount": "Выбрано провайдеров: {count}"
+        "selectedCount": "Выбрано провайдеров: {count}",
+        "routerBadge": "МАРШРУТ"
+    },
+    "agentSelector": {
+        "label": "Выбрать агента",
+        "placeholder": "Найти или выбрать агента"
     },
     "personaSelector": {
         "notSelected": "Не выбрано",

@@ -38,6 +38,7 @@
     "dialogTitle": "选择提供商",
     "loading": "加载中...",
     "noProviders": "暂无可用的提供商",
+    "noProvidersHint": "请先在模型枢纽中配置服务商",
     "confirmSelection": "确认选择",
     "cancelSelection": "取消",
     "clearSelection": "不选择",
@@ -46,7 +47,12 @@
     "createProvider": "创建提供商",
     "manageProviders": "提供商管理",
     "selectProviderPool": "选择提供商池...",
-    "selectedCount": "已选择 {count} 个提供商"
+    "selectedCount": "已选择 {count} 个提供商",
+    "routerBadge": "路由"
+  },
+  "agentSelector": {
+    "label": "选择智能体",
+    "placeholder": "搜索或选择智能体"
   },
   "personaSelector": {
     "notSelected": "未选择",

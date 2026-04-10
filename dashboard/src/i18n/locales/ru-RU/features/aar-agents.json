@@ -60,6 +60,18 @@
     "transferSelected": "Выбрано",
     "transferSearch": "Поиск...",
     "transferEmpty": "Нет элементов",
+    "selector": {
+      "openButton": "Открыть выбор",
+      "personaDialogTitle": "Выбрать персону",
+      "contextPolicyDialogTitle": "Выбрать политику контекста",
+      "toolsDialogTitle": "Выбрать инструменты",
+      "skillsDialogTitle": "Выбрать навыки",
+      "notSelected": "Не выбрано",
+      "clearSelection": "Очистить выбор",
+      "searchPlaceholder": "Поиск...",
+      "empty": "Нет доступных вариантов",
+      "selectedCount": "Выбрано: {count}"
+    },
     "promptOrchestration": "Оркестрация промптов",
     "promptOrchestrationHint": "Выберите промпты для агента",
     "selectPrompts": "Выбрать промпты",
@@ -101,6 +113,8 @@
     "confirm": "Подтвердить"
   },
   "policies": {
-    "sys.batch_eviction": "Пакетное удаление"
+    "sys": {
+      "batch_eviction": "Пакетное удаление"
+    }
   }
 }

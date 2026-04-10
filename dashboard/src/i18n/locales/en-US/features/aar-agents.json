@@ -60,13 +60,80 @@
     "transferSelected": "Selected",
     "transferSearch": "Search...",
     "transferEmpty": "No items",
+    "selector": {
+      "openButton": "Open Selector",
+      "personaDialogTitle": "Select Persona",
+      "contextPolicyDialogTitle": "Select Context Policy",
+      "toolsDialogTitle": "Select Authorized Tools",
+      "skillsDialogTitle": "Select Authorized Skills",
+      "notSelected": "Not selected",
+      "clearSelection": "Clear selection",
+      "searchPlaceholder": "Search...",
+      "empty": "No options available",
+      "selectedCount": "{count} selected"
+    },
     "promptOrchestration": "Prompt Orchestration",
     "promptOrchestrationHint": "Select and arrange prompt fragments for this Agent, grouped by the 7 pipeline stages",
     "selectPrompts": "Select Prompts",
     "noPrompts": "No prompts linked yet",
     "stageEmpty": "No prompts in this stage",
     "configJson": "Advanced Config (JSON)",
-    "configJsonHint": "Agent-level custom configuration parameters"
+    "configJsonHint": "Agent-level custom configuration parameters",
+    "capabilities": "Capabilities",
+    "capabilitiesHint": "Enable extended capabilities for this Agent. These settings override global defaults.",
+    "cap": {
+      "enabled": "Enabled",
+      "knowledgebase": {
+        "title": "Knowledge Base",
+        "enable": "Enable Knowledge Base",
+        "enableHint": "When enabled, the Agent can retrieve information from specified knowledge bases",
+        "names": "Knowledge Base List",
+        "namesHint": "Enter a knowledge base name and press Enter to add",
+        "fusionTopK": "Fusion Search Results Count",
+        "fusionTopKHint": "Number of results returned after fusing results from multiple knowledge bases",
+        "finalTopK": "Final Results Count",
+        "finalTopKHint": "Number of results retrieved from the knowledge base. Higher values may provide more information but can introduce noise",
+        "agenticMode": "Agentic Knowledge Base Retrieval",
+        "agenticModeHint": "When enabled, knowledge base retrieval becomes an LLM Tool, allowing the model to decide autonomously when to query"
+      },
+      "websearch": {
+        "title": "Web Search",
+        "enable": "Enable Web Search",
+        "enableHint": "When enabled, the Agent can search the internet for up-to-date information",
+        "provider": "Search Provider",
+        "keyHint": "Multiple keys can be added for rotation",
+        "tavilyKey": "Tavily API Key",
+        "bochaKey": "BoCha API Key",
+        "braveKey": "Brave Search API Key",
+        "baiduProvider": "Baidu Qianfan Cloud",
+        "baiduKey": "Baidu Qianfan APP Builder API Key",
+        "showLink": "Display Source Citations"
+      },
+      "computerUse": {
+        "title": "Computer Use",
+        "runtime": "Runtime Environment",
+        "runtimeHint": "sandbox = isolated sandbox, local = local machine, none = disabled",
+        "runtimeNone": "Disabled",
+        "runtimeLocal": "Local",
+        "runtimeSandbox": "Sandbox",
+        "requireAdmin": "Require Admin Permission",
+        "requireAdminHint": "When enabled, AstrBot admin permission is required to use computer capabilities",
+        "booter": "Sandbox Driver",
+        "neoEndpoint": "Shipyard Neo API Endpoint",
+        "neoEndpointHint": "Default: http://127.0.0.1:8114",
+        "neoToken": "Shipyard Neo Access Token",
+        "neoTokenHint": "Bay API Key (sk-bay-...). Leave empty for auto-discovery.",
+        "neoProfile": "Shipyard Neo Profile",
+        "neoProfileHint": "Sandbox profile, e.g. python-default",
+        "neoTtl": "Sandbox TTL (seconds)",
+        "neoTtlHint": "Sandbox instance time-to-live in seconds"
+      },
+      "proactive": {
+        "title": "Proactive Capability",
+        "enable": "Enable Proactive Capability",
+        "enableHint": "When enabled, the Agent can autonomously trigger tasks at specified times for proactive interactions"
+      }
+    }
   },
   "messages": {
     "loadFailed": "Failed to load agent list",
@@ -101,6 +168,8 @@
     "confirm": "Confirm Selection"
   },
   "policies": {
-    "sys.batch_eviction": "Batch Eviction Policy"
+    "sys": {
+      "batch_eviction": "Batch Eviction Policy"
+    }
   }
 }

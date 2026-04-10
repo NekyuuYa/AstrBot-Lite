@@ -69,7 +69,7 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
 
   const providerTypes = computed(() => [
     { value: 'completions', label: tm('providers.tabs.chatCompletion'), icon: 'mdi-message-text' },
-    { value: 'routers', label: '模型路由', icon: 'mdi-router-network' },
+    { value: 'routers', label: tm('routers.title'), icon: 'mdi-router-network' },
     { value: 'audio/transcriptions', label: tm('providers.tabs.speechToText'), icon: 'mdi-microphone-message' },
     { value: 'audio/speech', label: tm('providers.tabs.textToSpeech'), icon: 'mdi-volume-high' },
     { value: 'embeddings', label: tm('providers.tabs.embedding'), icon: 'mdi-code-json' },

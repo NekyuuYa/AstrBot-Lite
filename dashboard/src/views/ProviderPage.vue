@@ -74,7 +74,7 @@
                   <!-- 提供商基础信息 -->
                   <section class="provider-section">
                     <div class="provider-section-head">
-                      <div class="provider-section-title">基础配置</div>
+                      <div class="provider-section-title">{{ tm('providers.basicConfig') }}</div>
                     </div>
                     
                     <div class="object-config">
@@ -83,10 +83,10 @@
                         <v-col cols="12" sm="6" class="property-info">
                           <v-list-item density="compact">
                             <v-list-item-title class="property-name">
-                              Provider <span class="property-key">(provider)</span>
+                              {{ tm('providers.providerLabel') }} <span class="property-key">(provider)</span>
                             </v-list-item-title>
                             <v-list-item-subtitle class="property-hint">
-                              选择大模型服务提供商
+                              {{ tm('providers.providerHint') }}
                             </v-list-item-subtitle>
                           </v-list-item>
                         </v-col>
@@ -137,7 +137,7 @@
                               ID <span class="property-key">(id)</span>
                             </v-list-item-title>
                             <v-list-item-subtitle class="property-hint">
-                              {{ selectedProviderType === 'routers' ? '该路由的唯一标识符' : '该提供商源的唯一标识符' }}
+                              {{ selectedProviderType === 'routers' ? tm('routers.routerIdHint') : tm('routers.sourceIdHint') }}
                             </v-list-item-subtitle>
                           </v-list-item>
                         </v-col>
@@ -161,18 +161,18 @@
                         <v-row class="config-row">
                           <v-col cols="12" sm="6" class="property-info">
                             <v-list-item density="compact">
-                              <v-list-item-title class="property-name">路由策略</v-list-item-title>
-                              <v-list-item-subtitle class="property-hint">决定请求如何分配</v-list-item-subtitle>
+                              <v-list-item-title class="property-name">{{ tm('routers.strategyLabel') }}</v-list-item-title>
+                              <v-list-item-subtitle class="property-hint">{{ tm('routers.strategyHint') }}</v-list-item-subtitle>
                             </v-list-item>
                           </v-col>
                           <v-col cols="12" sm="6" class="config-input">
                             <v-select
                               v-model="editableProviderSource.routing_strategy"
                               :items="[
-                                {title: '优先级 (Priority-Based Fallover)', value: 'priority-based'},
-                                {title: '轮询 (Simple Shuffle)', value: 'simple-shuffle'},
-                                {title: '最少忙碌 (Least Busy)', value: 'least-busy'},
-                                {title: '最低延迟 (Latency Based)', value: 'latency-based-routing'}
+                                {title: tm('routers.strategies.priority'), value: 'priority-based'},
+                                {title: tm('routers.strategies.shuffle'), value: 'simple-shuffle'},
+                                {title: tm('routers.strategies.leastBusy'), value: 'least-busy'},
+                                {title: tm('routers.strategies.latency'), value: 'latency-based-routing'}
                               ]"
                               variant="outlined"
                               density="compact"
@@ -185,8 +185,8 @@
                         <!-- 参与路由的模型列表 (新样式 + 动画) -->
                         <div class="pa-4">
                           <div class="d-flex align-center justify-space-between mb-4">
-                            <div class="text-subtitle-1 font-weight-bold">参与路由的模型组 (按优先级排序)</div>
-                            <v-chip size="small" color="primary" variant="tonal">{{ activeRouterModelsCount }} 个激活</v-chip>
+                            <div class="text-subtitle-1 font-weight-bold">{{ tm('routers.modelList') }}</div>
+                            <v-chip size="small" color="primary" variant="tonal">{{ tm('routers.activeCount', { count: activeRouterModelsCount }) }}</v-chip>
                           </div>
                           
                           <div class="router-model-list-container border rounded-lg overflow-hidden">
@@ -216,7 +216,7 @@
                                         ></v-btn>
                                         <div class="priority-display d-flex flex-column align-center">
                                           <span class="priority-val">{{ getModelPriority(model.id) }}</span>
-                                          <span class="priority-label">PRIO</span>
+                                          <span class="priority-label">{{ tm('routers.priorityAbbrev') }}</span>
                                         </div>
                                         <v-btn 
                                           icon="mdi-plus" 
@@ -321,8 +321,8 @@
 
                 <div v-else class="provider-empty-state">
                   <v-icon size="64" color="grey-lighten-1">mdi-router-network</v-icon>
-                  <p class="mt-4 text-h3">模型路由管理</p>
-                  <p class="text-body-1 text-medium-emphasis">从左侧选择或创建一个路由组以开始配置</p>
+                  <p class="mt-4 text-h3">{{ tm('routers.routerManagerTitle') }}</p>
+                  <p class="text-body-1 text-medium-emphasis">{{ tm('routers.routerManagerHint') }}</p>
                 </div>
               </v-card>
             </v-col>
@@ -357,8 +357,8 @@
         </v-card-text>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="showManualModelDialog = false" rounded="lg">取消</v-btn>
-          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="lg">添加</v-btn>
+          <v-btn variant="text" @click="showManualModelDialog = false" rounded="lg">{{ tm('dialogs.config.cancel') }}</v-btn>
+          <v-btn color="primary" @click="confirmManualModel" variant="flat" rounded="lg">{{ tm('providerSources.add') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -368,7 +368,7 @@
       <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')" rounded="lg">
         <v-card-text class="py-4">
           <v-alert type="warning" variant="tonal" class="mb-4" density="compact">
-            不建议修改 ID，可能会导致指向该模型的相关配置失效。
+            {{ tm('models.idChangeWarning') }}
           </v-alert>
           <AstrBotConfig 
             v-if="providerEditData" 
