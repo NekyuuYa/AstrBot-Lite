@@ -22,6 +22,22 @@ WEB_SEARCH_TOOL_NAMES = [
     "web_search_bocha",
     "web_search_brave",
 ]
+_TAVILY_WEB_SEARCH_TOOL_CONFIG = {
+    "provider_settings.web_search": True,
+    "provider_settings.websearch_provider": "tavily",
+}
+_BOCHA_WEB_SEARCH_TOOL_CONFIG = {
+    "provider_settings.web_search": True,
+    "provider_settings.websearch_provider": "bocha",
+}
+_BRAVE_WEB_SEARCH_TOOL_CONFIG = {
+    "provider_settings.web_search": True,
+    "provider_settings.websearch_provider": "brave",
+}
+_BAIDU_WEB_SEARCH_TOOL_CONFIG = {
+    "provider_settings.web_search": True,
+    "provider_settings.websearch_provider": "baidu_ai_search",
+}
 
 
 @std_dataclass
@@ -311,7 +327,7 @@ async def _baidu_search(
             ]
 
 
-@builtin_tool
+@builtin_tool(config=_TAVILY_WEB_SEARCH_TOOL_CONFIG)
 @pydantic_dataclass
 class TavilyWebSearchTool(FunctionTool[AstrAgentContext]):
     name: str = "web_search_tavily"
@@ -394,7 +410,7 @@ class TavilyWebSearchTool(FunctionTool[AstrAgentContext]):
         return _search_result_payload(results)
 
 
-@builtin_tool
+@builtin_tool(config=_TAVILY_WEB_SEARCH_TOOL_CONFIG)
 @pydantic_dataclass
 class TavilyExtractWebPageTool(FunctionTool[AstrAgentContext]):
     name: str = "tavily_extract_web_page"
@@ -441,7 +457,7 @@ class TavilyExtractWebPageTool(FunctionTool[AstrAgentContext]):
         return ret or "Error: Tavily web searcher does not return any results."
 
 
-@builtin_tool
+@builtin_tool(config=_BOCHA_WEB_SEARCH_TOOL_CONFIG)
 @pydantic_dataclass
 class BochaWebSearchTool(FunctionTool[AstrAgentContext]):
     name: str = "web_search_bocha"
@@ -505,7 +521,7 @@ class BochaWebSearchTool(FunctionTool[AstrAgentContext]):
         return _search_result_payload(results)
 
 
-@builtin_tool
+@builtin_tool(config=_BRAVE_WEB_SEARCH_TOOL_CONFIG)
 @pydantic_dataclass
 class BraveWebSearchTool(FunctionTool[AstrAgentContext]):
     name: str = "web_search_brave"
@@ -563,7 +579,7 @@ class BraveWebSearchTool(FunctionTool[AstrAgentContext]):
         return _search_result_payload(results)
 
 
-@builtin_tool
+@builtin_tool(config=_BAIDU_WEB_SEARCH_TOOL_CONFIG)
 @pydantic_dataclass
 class BaiduWebSearchTool(FunctionTool[AstrAgentContext]):
     name: str = "web_search_baidu"
