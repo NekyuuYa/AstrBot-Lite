@@ -62,11 +62,6 @@ const sidebarItem: menu[] = [
         title: 'core.navigation.agent.subagent',
         icon: 'mdi-vector-link',
         to: '/subagent'
-      },
-      {
-        title: 'core.navigation.agent.persona',
-        icon: 'mdi-heart',
-        to: '/persona'
       }
     ]
   },
@@ -128,6 +123,11 @@ const sidebarItem: menu[] = [
         title: 'core.navigation.monitor.trace',
         icon: 'mdi-timeline-text-outline',
         to: '/trace'
+      },
+      {
+        title: 'core.navigation.sessionManagement',
+        icon: 'mdi-account-cog-outline',
+        to: '/session-management'
       },
       {
         title: 'core.navigation.monitor.conversation',

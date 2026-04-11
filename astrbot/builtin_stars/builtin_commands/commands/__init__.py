@@ -5,7 +5,6 @@ from .alter_cmd import AlterCmdCommands
 from .conversation import ConversationCommands
 from .help import HelpCommand
 from .llm import LLMCommands
-from .persona import PersonaCommands
 from .plugin import PluginCommands
 from .provider import ProviderCommands
 from .setunset import SetUnsetCommands
@@ -19,7 +18,6 @@ __all__ = [
     "ConversationCommands",
     "HelpCommand",
     "LLMCommands",
-    "PersonaCommands",
     "PluginCommands",
     "ProviderCommands",
     "SIDCommand",

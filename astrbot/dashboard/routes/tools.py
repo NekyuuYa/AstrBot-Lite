@@ -1,3 +1,4 @@
+import copy
 import traceback
 
 from quart import request
@@ -37,6 +38,72 @@ def _extract_mcp_server_config(mcp_servers_value: object) -> dict:
             "and each value is an object containing fields like command/url."
         )
     return extracted
+
+
+def _apply_agent_capability_overrides(base_config: dict, agent) -> dict:
+    effective = copy.deepcopy(base_config)
+    provider_settings = effective.setdefault("provider_settings", {})
+
+    websearch = getattr(agent, "websearch", None)
+    if isinstance(websearch, dict):
+        provider_settings["web_search"] = bool(websearch.get("enabled", False))
+        provider_settings["websearch_provider"] = websearch.get(
+            "provider", provider_settings.get("websearch_provider", "tavily")
+        )
+        provider_settings["websearch_tavily_key"] = websearch.get(
+            "tavily_key",
+            provider_settings.get("websearch_tavily_key", []),
+        )
+        provider_settings["websearch_bocha_key"] = websearch.get(
+            "bocha_key",
+            provider_settings.get("websearch_bocha_key", []),
+        )
+        provider_settings["websearch_brave_key"] = websearch.get(
+            "brave_key",
+            provider_settings.get("websearch_brave_key", []),
+        )
+        provider_settings["websearch_baidu_app_builder_key"] = websearch.get(
+            "baidu_key",
+            provider_settings.get("websearch_baidu_app_builder_key", ""),
+        )
+        provider_settings["web_search_link"] = bool(
+            websearch.get("show_link", provider_settings.get("web_search_link", False))
+        )
+
+    computer_use = getattr(agent, "computer_use", None)
+    if isinstance(computer_use, dict):
+        provider_settings["computer_use_runtime"] = computer_use.get(
+            "runtime", provider_settings.get("computer_use_runtime", "none")
+        )
+        provider_settings["computer_use_require_admin"] = bool(
+            computer_use.get(
+                "require_admin",
+                provider_settings.get("computer_use_require_admin", False),
+            )
+        )
+        sandbox_settings = provider_settings.setdefault("sandbox", {})
+        if computer_use.get("booter"):
+            sandbox_settings["booter"] = computer_use.get("booter")
+        if computer_use.get("neo_endpoint"):
+            sandbox_settings["shipyard_neo_endpoint"] = computer_use.get(
+                "neo_endpoint"
+            )
+        if computer_use.get("neo_token"):
+            sandbox_settings["shipyard_neo_access_token"] = computer_use.get(
+                "neo_token"
+            )
+        if computer_use.get("neo_profile"):
+            sandbox_settings["shipyard_neo_profile"] = computer_use.get(
+                "neo_profile"
+            )
+        if computer_use.get("neo_ttl") is not None:
+            sandbox_settings["shipyard_neo_ttl"] = computer_use.get("neo_ttl")
+
+    knowledgebase = getattr(agent, "knowledgebase", None)
+    if isinstance(knowledgebase, dict):
+        effective["kb_agentic_mode"] = bool(knowledgebase.get("agentic_mode", False))
+
+    return effective
 
 
 class ToolsRoute(Route):
@@ -429,6 +496,7 @@ class ToolsRoute(Route):
     async def get_tool_list(self):
         """Get all registered tools."""
         try:
+            agent_id = request.args.get("agent_id")
             tools = list(self.tool_mgr.func_list)
             existing_names = {tool.name for tool in tools}
             for tool in self.tool_mgr.iter_builtin_tools():
@@ -446,6 +514,26 @@ class ToolsRoute(Route):
                         "config": conf,
                     }
                 )
+
+            if agent_id:
+                agent_mgr = getattr(self.core_lifecycle, "aar_agent_mgr", None)
+                if agent_mgr is not None:
+                    agent = agent_mgr.get_agent(agent_id)
+                    if agent is not None:
+                        base_config = self.core_lifecycle.astrbot_config_mgr.confs.get(
+                            "default", {}
+                        )
+                        if isinstance(base_config, dict):
+                            config_entries.insert(
+                                0,
+                                {
+                                    "conf_id": f"agent:{agent.agent_id}",
+                                    "conf_name": f"Agent: {agent.name}",
+                                    "config": _apply_agent_capability_overrides(
+                                        base_config, agent
+                                    ),
+                                },
+                            )
 
             tools_dict = []
             for tool in tools:

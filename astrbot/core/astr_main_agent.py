@@ -525,6 +525,11 @@ async def _ensure_persona_and_skills(
         return
 
     aar_agent_mgr: AgentManager | None = getattr(plugin_context, "aar_agent_mgr", None)
+    aar_prompt_mgr: PromptManager | None = getattr(plugin_context, "aar_prompt_mgr", None)
+    aar_ctx_policy: ContextPolicyRegistry | None = getattr(
+        plugin_context, "aar_ctx_policy", None
+    )
+
     active_agent = aar_agent_mgr.resolve_agent() if aar_agent_mgr else None
 
     (
@@ -545,13 +550,6 @@ async def _ensure_persona_and_skills(
     )
 
     # --- Prompt Assembly via AAR 7-stage pipeline ---
-    aar_prompt_mgr: PromptManager | None = getattr(
-        plugin_context, "aar_prompt_mgr", None
-    )
-    aar_ctx_policy: ContextPolicyRegistry | None = getattr(
-        plugin_context, "aar_ctx_policy", None
-    )
-
     if (
         aar_prompt_mgr is not None
         and aar_agent_mgr is not None
@@ -573,9 +571,7 @@ async def _ensure_persona_and_skills(
     tmgr = plugin_context.get_llm_tool_manager()
 
     # inject toolset: use AgentConfig.tools whitelist, falling back to all active tools
-    agent_tools: list | None = None
-    if active_agent:
-        agent_tools = active_agent.tools
+    agent_tools: list | None = active_agent.tools if active_agent else None
 
     if agent_tools is None:
         # None means "use all active tools"

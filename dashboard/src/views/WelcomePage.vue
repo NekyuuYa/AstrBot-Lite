@@ -339,6 +339,20 @@ async function fetchDefaultConfig() {
   return res.data?.data?.config || {};
 }
 
+async function resolveDefaultAgentId() {
+  const configData = await fetchDefaultConfig();
+  const providerSettings = configData?.provider_settings || {};
+  return providerSettings.default_agent_id || 'sys.default';
+}
+
+async function fetchAgent(agentId: string) {
+  const res = await axios.get(`/api/agents/${encodeURIComponent(agentId)}`);
+  if (res.data?.status !== 'ok' || !res.data?.data) {
+    throw new Error(res.data?.message || tm('onboard.computerAccessUpdateFailed'));
+  }
+  return res.data.data;
+}
+
 function getChatProvidersFromTemplatePayload(payload: any) {
   const providers = payload?.providers || [];
   const sources = payload?.provider_sources || [];
@@ -402,9 +416,8 @@ function normalizeComputerAccessRuntime(runtime: unknown): ComputerAccessRuntime
   return runtime === 'local' || runtime === 'sandbox' ? 'local' : 'none';
 }
 
-function syncComputerAccessRuntime(configData: any) {
-  const providerSettings = configData?.provider_settings || {};
-  const currentRuntime = providerSettings?.computer_use_runtime;
+function syncComputerAccessRuntime(agentData: any) {
+  const currentRuntime = agentData?.computer_use?.runtime;
   const normalizedRuntime = normalizeComputerAccessRuntime(currentRuntime);
 
   computerAccessRuntime.value = normalizedRuntime;
@@ -423,16 +436,15 @@ const computerAccessOptions = computed(() => [
 async function saveComputerAccessRuntime() {
   savingComputerAccess.value = true;
   try {
-    const configData = await fetchDefaultConfig();
-    if (!configData.provider_settings) {
-      configData.provider_settings = {};
-    }
+    const agentId = await resolveDefaultAgentId();
+    const agentData = await fetchAgent(agentId);
+    const nextComputerUse = {
+      ...(agentData.computer_use || {}),
+      runtime: computerAccessRuntime.value
+    };
 
-    configData.provider_settings.computer_use_runtime = computerAccessRuntime.value;
-
-    const updateRes = await axios.post('/api/config/astrbot/update', {
-      conf_id: 'default',
-      config: configData
+    const updateRes = await axios.put(`/api/agents/${encodeURIComponent(agentId)}`, {
+      computer_use: nextComputerUse
     });
     if (updateRes.data.status !== 'ok') {
       throw new Error(updateRes.data.message || tm('onboard.computerAccessUpdateFailed'));
@@ -486,8 +498,9 @@ onMounted(async () => {
   }
 
   try {
-    const defaultConfig = await fetchDefaultConfig();
-    syncComputerAccessRuntime(defaultConfig);
+    const agentId = await resolveDefaultAgentId();
+    const agentData = await fetchAgent(agentId);
+    syncComputerAccessRuntime(agentData);
   } catch (e) {
     console.error(e);
   }

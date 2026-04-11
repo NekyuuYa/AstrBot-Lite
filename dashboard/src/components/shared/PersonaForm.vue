@@ -129,23 +129,15 @@ export default {
     },
     data() {
         return {
-            toolSelectValue: '0', // 默认选择全部工具
             saving: false,
             expandedPanels: [],
             formValid: false,
-            mcpServers: [],
-            availableTools: [],
-            loadingTools: false,
-            availableSkills: [],
-            loadingSkills: false,
             existingPersonaIds: [], // 已存在的人格ID列表
             personaForm: {
                 persona_id: '',
                 system_prompt: '',
                 custom_error_message: '',
                 begin_dialogs: [],
-                tools: [],
-                skills: [],
                 folder_id: null
             },
             personaIdRules: [
@@ -156,10 +148,7 @@ export default {
             systemPromptRules: [
                 v => !!v || this.tm('validation.required'),
                 v => (v && v.length >= 10) || this.tm('validation.minLength', { min: 10 })
-            ],
-            toolSearch: '',
-            skillSearch: '',
-            skillSelectValue: '0'
+            ]
         }
     },
 
@@ -171,27 +160,6 @@ export default {
             set(value) {
                 this.$emit('update:modelValue', value);
             }
-        },
-        filteredTools() {
-            if (!this.toolSearch) {
-                return this.availableTools;
-            }
-            const search = this.toolSearch.toLowerCase();
-            return this.availableTools.filter(tool =>
-                tool.name.toLowerCase().includes(search) ||
-                (tool.description && tool.description.toLowerCase().includes(search)) ||
-                (tool.mcp_server_name && tool.mcp_server_name.toLowerCase().includes(search))
-            );
-        },
-        filteredSkills() {
-            if (!this.skillSearch) {
-                return this.availableSkills;
-            }
-            const search = this.skillSearch.toLowerCase();
-            return this.availableSkills.filter(skill =>
-                skill.name.toLowerCase().includes(search) ||
-                (skill.description && skill.description.toLowerCase().includes(search))
-            );
         },
         folderDisplayName() {
             // 优先使用传入的文件夹名称
@@ -218,9 +186,6 @@ export default {
                     // 只在创建新人格时加载已存在的人格列表
                     this.loadExistingPersonaIds();
                 }
-                this.loadMcpServers();
-                this.loadTools();
-                this.loadSkills();
             }
         },
         editingPersona: {
@@ -235,26 +200,6 @@ export default {
                     }
                 }
             }
-        },
-        toolSelectValue(newValue) {
-            if (newValue === '0') {
-                // 选择全部工具
-                this.personaForm.tools = null;
-            } else if (newValue === '1') {
-                // 选择指定工具，如果当前是null，则转换为空数组
-                if (this.personaForm.tools === null) {
-                    this.personaForm.tools = [];
-                }
-            }
-        },
-        skillSelectValue(newValue) {
-            if (newValue === '0') {
-                this.personaForm.skills = null;
-            } else if (newValue === '1') {
-                if (this.personaForm.skills === null) {
-                    this.personaForm.skills = [];
-                }
-            }
         }
     },
 
@@ -265,12 +210,8 @@ export default {
                 system_prompt: '',
                 custom_error_message: '',
                 begin_dialogs: [],
-                tools: [],
-                skills: [],
                 folder_id: this.currentFolderId
             };
-            this.toolSelectValue = '0';
-            this.skillSelectValue = '0';
             this.expandedPanels = this.getDefaultExpandedPanels();
         },
 
@@ -280,76 +221,17 @@ export default {
                 system_prompt: persona.system_prompt,
                 custom_error_message: persona.custom_error_message || '',
                 begin_dialogs: [...(persona.begin_dialogs || [])],
-                tools: persona.tools === null ? null : [...(persona.tools || [])],
-                skills: persona.skills === null ? null : [...(persona.skills || [])],
                 folder_id: persona.folder_id
             };
-            // 根据 tools 的值设置 toolSelectValue
-            this.toolSelectValue = persona.tools === null ? '0' : '1';
-            this.skillSelectValue = persona.skills === null ? '0' : '1';
             this.expandedPanels = this.getDefaultExpandedPanels();
         },
 
         getDefaultExpandedPanels() {
-            return this.$vuetify.display.smAndDown ? [] : ['tools', 'skills', 'dialogs'];
+            return this.$vuetify.display.smAndDown ? [] : ['dialogs'];
         },
 
         closeDialog() {
             this.showDialog = false;
-        },
-
-        async loadMcpServers() {
-            try {
-                const response = await axios.get('/api/tools/mcp/servers');
-                if (response.data.status === 'ok') {
-                    this.mcpServers = response.data.data || [];
-                } else {
-                    this.$emit('error', response.data.message || 'Failed to load MCP servers');
-                }
-            } catch (error) {
-                this.$emit('error', error.response?.data?.message || 'Failed to load MCP servers');
-                this.mcpServers = [];
-            }
-        },
-
-        async loadTools() {
-            this.loadingTools = true;
-            try {
-                const response = await axios.get('/api/tools/list');
-                if (response.data.status === 'ok') {
-                    this.availableTools = response.data.data || [];
-                } else {
-                    this.$emit('error', response.data.message || 'Failed to load tools');
-                }
-            } catch (error) {
-                this.$emit('error', error.response?.data?.message || 'Failed to load tools');
-                this.availableTools = [];
-            } finally {
-                this.loadingTools = false;
-            }
-        },
-
-        async loadSkills() {
-            this.loadingSkills = true;
-            try {
-                const response = await axios.get('/api/skills');
-                if (response.data.status === 'ok') {
-                    const payload = response.data.data || [];
-                    if (Array.isArray(payload)) {
-                        this.availableSkills = payload.filter(skill => skill.active !== false);
-                    } else {
-                        const skills = payload.skills || [];
-                        this.availableSkills = skills.filter(skill => skill.active !== false);
-                    }
-                } else {
-                    this.$emit('error', response.data.message || 'Failed to load skills');
-                }
-            } catch (error) {
-                this.$emit('error', error.response?.data?.message || 'Failed to load skills');
-                this.availableSkills = [];
-            } finally {
-                this.loadingSkills = false;
-            }
         },
 
         async loadExistingPersonaIds() {
@@ -443,11 +325,6 @@ export default {
             else if (index % 2 === 1 && index - 1 >= 0) {
                 this.personaForm.begin_dialogs.splice(index - 1, 2);
             }
-        },
-
-        truncateText(text, maxLength) {
-            if (!text) return '';
-            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
         },
 
         getDialogRules(index) {

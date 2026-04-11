@@ -7,7 +7,6 @@ from .commands import (
     ConversationCommands,
     HelpCommand,
     LLMCommands,
-    PersonaCommands,
     PluginCommands,
     ProviderCommands,
     SetUnsetCommands,
@@ -27,7 +26,6 @@ class Main(star.Star):
         self.admin_c = AdminCommands(self.context)
         self.conversation_c = ConversationCommands(self.context)
         self.provider_c = ProviderCommands(self.context)
-        self.persona_c = PersonaCommands(self.context)
         self.alter_cmd_c = AlterCmdCommands(self.context)
         self.setunset_c = SetUnsetCommands(self.context)
         self.t2i_c = T2ICommand(self.context)
@@ -190,12 +188,6 @@ class Main(star.Star):
     async def key(self, message: AstrMessageEvent, index: int | None = None) -> None:
         """查看或者切换 Key"""
         await self.provider_c.key(message, index)
-
-    @filter.permission_type(filter.PermissionType.ADMIN)
-    @filter.command("persona")
-    async def persona(self, message: AstrMessageEvent) -> None:
-        """查看或者切换 Persona"""
-        await self.persona_c.persona(message)
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("dashboard_update")
