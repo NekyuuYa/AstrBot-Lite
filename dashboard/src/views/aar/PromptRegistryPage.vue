@@ -185,7 +185,7 @@ onMounted(loadPrompts)
       <!-- Header -->
       <div class="dashboard-header">
         <div class="dashboard-header-main">
-          <div class="dashboard-eyebrow">{{ tm('header.eyebrow') }}</div>
+          <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'AAR Prompt Registry' }}</div>
           <h1 class="dashboard-title">{{ tm('page.title') }}</h1>
           <p class="dashboard-subtitle">{{ tm('page.subtitle') }}</p>
         </div>
@@ -345,12 +345,13 @@ onMounted(loadPrompts)
         v-model="editorOpen"
         location="right"
         temporary
-        width="520"
+        width="560"
         class="pa-0"
       >
-        <div style="padding: 24px; height: 100%; display: flex; flex-direction: column">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
-            <h3 style="font-size: 18px; font-weight: 600">
+        <div class="d-flex flex-column h-100">
+          <!-- Drawer Header -->
+          <div class="pa-6 pb-4 d-flex justify-space-between align-center">
+            <h3 class="text-h6 font-weight-bold">
               {{ editorMode === 'create' ? tm('editor.titleCreate') : tm('editor.titleEdit') }}
             </h3>
             <v-btn icon variant="text" size="small" @click="editorOpen = false">
@@ -358,44 +359,47 @@ onMounted(loadPrompts)
             </v-btn>
           </div>
 
-          <v-alert
-            v-if="editorMode === 'edit' && isSystemEntry(editForm)"
-            type="warning"
-            density="compact"
-            variant="tonal"
-            class="mb-4"
-          >
-            {{ tm('editor.systemWarning') }}
-          </v-alert>
+          <!-- System Warning -->
+          <div v-if="editorMode === 'edit' && isSystemEntry(editForm)" class="px-6 mb-2">
+            <div
+              class="rounded-lg d-flex align-center px-3 py-2"
+              style="background-color: rgba(var(--v-theme-warning), 0.1); border: 1px solid rgba(var(--v-theme-warning), 0.2); color: rgb(var(--v-theme-warning)); font-size: 12px; line-height: 1.4"
+            >
+              <v-icon size="18" class="mr-2" color="warning">mdi-alert-circle-outline</v-icon>
+              {{ tm('editor.systemWarning') }}
+            </div>
+          </div>
 
-          <div style="flex: 1; overflow-y: auto">
+          <!-- Drawer Body (Scrollable) -->
+          <div class="flex-grow-1 overflow-y-auto px-6 py-2">
             <v-text-field
               v-model="editForm.prompt_id"
               :label="tm('editor.promptId')"
               :hint="tm('editor.promptIdHint')"
               persistent-hint
-              density="compact"
+              density="comfortable"
               variant="outlined"
               :readonly="editorMode === 'edit'"
-              class="mb-3"
+              class="mb-6"
             />
             <v-text-field
               v-model="editForm.name"
               :label="tm('editor.name')"
               :hint="tm('editor.nameHint')"
               persistent-hint
-              density="compact"
+              density="comfortable"
               variant="outlined"
-              class="mb-3"
+              class="mb-6"
             />
-            <div class="dashboard-form-grid mb-3">
+            
+            <div class="dashboard-form-grid mb-6">
               <v-select
                 v-model="editForm.category"
                 :label="tm('editor.category')"
                 :items="stages.map((s: any) => ({ title: `${s.order}. ${s.name}`, value: s.id }))"
                 :hint="tm('editor.categoryHint')"
                 persistent-hint
-                density="compact"
+                density="comfortable"
                 variant="outlined"
               />
               <v-text-field
@@ -406,11 +410,12 @@ onMounted(loadPrompts)
                 type="number"
                 :min="0"
                 :max="100"
-                density="compact"
+                density="comfortable"
                 variant="outlined"
               />
             </div>
-            <div class="dashboard-form-grid mb-3">
+
+            <div class="dashboard-form-grid mb-6">
               <v-select
                 v-model="editForm.type"
                 :label="tm('editor.type')"
@@ -419,7 +424,7 @@ onMounted(loadPrompts)
                   { title: tm('types.template'), value: 'template' },
                   { title: tm('types.functional'), value: 'functional' },
                 ]"
-                density="compact"
+                density="comfortable"
                 variant="outlined"
               />
               <v-text-field
@@ -427,18 +432,21 @@ onMounted(loadPrompts)
                 :label="tm('editor.source')"
                 :hint="tm('editor.sourceHint')"
                 persistent-hint
-                density="compact"
+                density="comfortable"
                 variant="outlined"
               />
             </div>
-            <v-switch
-              v-model="editForm.is_active"
-              :label="tm('editor.active')"
-              density="compact"
-              color="primary"
-              hide-details
-              class="mb-4"
-            />
+
+            <div class="d-flex align-center mb-6">
+              <v-switch
+                v-model="editForm.is_active"
+                :label="tm('editor.active')"
+                density="comfortable"
+                color="primary"
+                hide-details
+              />
+            </div>
+
             <v-textarea
               v-model="editForm.content"
               :label="tm('editor.content')"
@@ -446,14 +454,16 @@ onMounted(loadPrompts)
               persistent-hint
               :readonly="editForm.type === 'functional'"
               variant="outlined"
-              rows="10"
+              rows="8"
               auto-grow
+              class="mb-4"
             />
           </div>
 
-          <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--dashboard-border)">
-            <v-btn variant="text" @click="editorOpen = false">{{ tm('actions.cancel') }}</v-btn>
-            <v-btn color="primary" @click="savePrompt">{{ tm('actions.save') }}</v-btn>
+          <!-- Drawer Footer -->
+          <div class="pa-6 pt-4 d-flex gap-2 justify-end border-top">
+            <v-btn variant="text" rounded="xl" @click="editorOpen = false">{{ tm('actions.cancel') }}</v-btn>
+            <v-btn color="primary" rounded="xl" elevation="0" @click="savePrompt">{{ tm('actions.save') }}</v-btn>
           </div>
         </div>
       </v-navigation-drawer>

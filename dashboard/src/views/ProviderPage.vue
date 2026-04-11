@@ -1,49 +1,48 @@
 <template>
-  <div class="provider-page">
-    <v-container fluid class="pa-0">
+  <div class="dashboard-page provider-page" :class="{ 'is-dark': isDark }">
+    <v-container fluid class="dashboard-shell pa-4 pa-md-6">
       <!-- 页面标题 -->
-      <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-4">
-        <div>
-          <h1 class="text-h1 font-weight-bold mb-2">
-            <v-icon color="black" class="me-2">mdi-creation</v-icon>{{ tm('title') }}
+      <div class="dashboard-header">
+        <div class="dashboard-header-main">
+          <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'Model Hub' }}</div>
+          <h1 class="dashboard-title">
+            <v-icon class="me-2" size="small">mdi-creation</v-icon>{{ tm('title') }}
           </h1>
-          <p class="text-subtitle-1 text-medium-emphasis mb-4">
+          <p class="dashboard-subtitle">
             {{ tm('subtitle') }}
           </p>
         </div>
-      </v-row>
+      </div>
 
-      <div>
-        <!-- Model Hub Type 标签页 -->
-        <v-tabs v-model="selectedProviderType" bg-color="transparent" class="mb-4">
-          <v-tab v-for="type in providerTypes" :key="type.value" :value="type.value" class="font-weight-medium px-3">
+      <!-- Model Hub Type 标签页 -->
+        <v-tabs v-model="selectedProviderType" bg-color="transparent" class="mb-6">
+          <v-tab v-for="type in providerTypes" :key="type.value" :value="type.value" class="font-weight-medium px-4">
             <v-icon start>{{ type.icon }}</v-icon>
             {{ type.label }}
           </v-tab>
         </v-tabs>
 
         <!-- 统一布局: 左侧列表 + 右侧配置 -->
-        <div class="provider-workbench">
-          <v-row class="provider-workbench__shell">
-            <!-- 左侧提供商源列表 -->
-            <v-col cols="12" md="4" lg="3" class="provider-workbench__sources">
-              <ProviderSourcesPanel
-                :displayed-provider-sources="displayedProviderSources"
-                :selected-provider-source="selectedProviderSource"
-                :selected-provider-type="selectedProviderType"
-                :available-source-types="availableSourceTypes"
-                :tm="tm"
-                :resolve-source-icon="resolveSourceIcon"
-                :getSourceDisplayName="getSourceDisplayName"
-                @add-provider-source="addProviderSource"
-                @select-provider-source="selectProviderSource"
-                @delete-provider-source="deleteProviderSource"
-              />
-            </v-col>
+        <v-row class="ma-n2">
+          <!-- 左侧提供商源列表 -->
+          <v-col cols="12" md="4" lg="3" class="pa-2">
+            <ProviderSourcesPanel
+              :displayed-provider-sources="displayedProviderSources"
+              :selected-provider-source="selectedProviderSource"
+              :selected-provider-type="selectedProviderType"
+              :available-source-types="availableSourceTypes"
+              :tm="tm"
+              :resolve-source-icon="resolveSourceIcon"
+              :getSourceDisplayName="getSourceDisplayName"
+              @add-provider-source="addProviderSource"
+              @select-provider-source="selectProviderSource"
+              @delete-provider-source="deleteProviderSource"
+            />
+          </v-col>
 
-            <!-- 右侧配置面板 -->
-            <v-col cols="12" md="8" lg="9" class="provider-workbench__settings">
-              <v-card class="provider-config-card provider-settings-panel h-100" elevation="0">
+          <!-- 右侧配置面板 -->
+          <v-col cols="12" md="8" lg="9" class="pa-2">
+            <v-card class="dashboard-card provider-settings-panel h-100" elevation="0">
                 <div v-if="selectedProviderSource" class="provider-config-header">
                   <div class="provider-config-headline">
                     <div class="provider-config-kicker">{{ tm('providers.settings') }}</div>
@@ -327,12 +326,8 @@
               </v-card>
             </v-col>
           </v-row>
-        </div>
-      </div>
-    </v-container>
 
-    <!-- 手动添加模型对话框 -->
-    <v-dialog v-model="showManualModelDialog" max-width="450">
+          <!-- 手动添加模型对话框 -->    <v-dialog v-model="showManualModelDialog" max-width="450">
       <v-card :title="tm('models.manualDialogTitle')" rounded="lg">
         <v-card-text class="py-4">
           <v-text-field 
@@ -396,11 +391,13 @@
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="top" rounded="xl">
       {{ snackbar.message }}
     </v-snackbar>
+    </v-container>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
+import { useTheme } from 'vuetify'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue'
@@ -408,6 +405,7 @@ import ProviderModelsPanel from '@/components/provider/ProviderModelsPanel.vue'
 import ProviderSourcesPanel from '@/components/provider/ProviderSourcesPanel.vue'
 import { useProviderSources } from '@/composables/useProviderSources'
 import { getProviderIcon } from '@/utils/providerUtils'
+import '@/styles/dashboard-shell.css'
 
 const props = defineProps({
   defaultTab: {
@@ -416,6 +414,8 @@ const props = defineProps({
   }
 })
 
+const theme = useTheme()
+const isDark = computed(() => theme.global.current.value.dark)
 const { tm } = useModuleI18n('features/provider')
 
 const snackbar = ref({
@@ -726,32 +726,11 @@ watch(() => props.defaultTab, (val) => {
 </script>
 
 <style scoped>
-.provider-page {
-  --provider-surface: rgb(var(--v-theme-surface));
-  --provider-text: rgb(var(--v-theme-on-surface));
-  --provider-muted: rgba(var(--v-theme-on-surface), 0.68);
-  --provider-subtle: rgba(var(--v-theme-on-surface), 0.56);
-  --provider-border: rgba(var(--v-theme-on-surface), 0.1);
-  --provider-soft: rgba(var(--v-theme-primary), 0.08);
-  padding: 20px;
-  padding-top: 8px;
-}
-
-.provider-workbench {
-  display: flex;
-  justify-content: center;
-}
-
-.provider-workbench__shell {
-  width: 100%;
-  max-width: 1600px;
-}
-
 .provider-config-card {
   min-height: 500px;
-  border: 1px solid var(--provider-border);
-  border-radius: 20px;
-  background: var(--provider-surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .provider-config-header {
@@ -759,11 +738,11 @@ watch(() => props.defaultTab, (val) => {
   justify-content: space-between;
   align-items: center;
   padding: 24px 24px 20px;
-  border-bottom: 1px solid var(--provider-border);
+  border-bottom: 1px solid var(--dashboard-border);
 }
 
 .provider-config-kicker {
-  color: var(--provider-subtle);
+  color: var(--dashboard-subtle);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -774,7 +753,7 @@ watch(() => props.defaultTab, (val) => {
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--provider-text);
+  color: var(--dashboard-text);
 }
 
 .provider-config-body {
@@ -782,7 +761,7 @@ watch(() => props.defaultTab, (val) => {
 }
 
 .provider-section {
-  border: 1px solid var(--provider-border);
+  border: 1px solid var(--dashboard-border);
   border-radius: 16px;
   background: rgba(var(--v-theme-on-surface), 0.01);
   padding: 20px;
@@ -791,7 +770,7 @@ watch(() => props.defaultTab, (val) => {
 .provider-section-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--provider-text);
+  color: var(--dashboard-text);
   margin-bottom: 16px;
 }
 

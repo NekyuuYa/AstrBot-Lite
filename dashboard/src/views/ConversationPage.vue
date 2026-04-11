@@ -1,16 +1,32 @@
 <template>
-    <div class="conversation-page">
-        <v-container fluid class="pa-0">
+    <div class="dashboard-page conversation-page" :class="{ 'is-dark': isDark }">
+        <v-container fluid class="dashboard-shell pa-4 pa-md-6">
+            <!-- Header -->
+            <div class="dashboard-header">
+                <div class="dashboard-header-main">
+                    <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'History' }}</div>
+                    <h1 class="dashboard-title">{{ tm('history.title') }}</h1>
+                    <p class="dashboard-subtitle">{{ tm('history.subtitle') || '管理所有的会话历史记录。' }}</p>
+                </div>
+                <div class="dashboard-header-actions">
+                    <v-btn color="primary" prepend-icon="mdi-refresh" variant="tonal" @click="fetchConversations"
+                        :loading="loading" rounded="xl">
+                        {{ tm('history.refresh') }}
+                    </v-btn>
+                </div>
+            </div>
+
             <!-- 对话列表部分 -->
-            <v-card flat>
+            <v-card class="dashboard-card" elevation="0">
                 <v-card-title class="d-flex align-center py-3 px-4">
-                    <span class="text-h4">{{ tm('history.title') }}</span>
-                    <v-chip size="small" class="ml-2">{{ pagination.total || 0 }}</v-chip>
-                    <v-row class="me-4 ms-4" dense>
+                    <v-chip size="small" color="primary" variant="tonal" label class="mr-4">
+                        {{ pagination.total || 0 }} {{ tm('history.total') || 'Total' }}
+                    </v-chip>
+                    <v-row dense>
                         <v-col cols="12" sm="6" md="4">
                             <v-combobox v-model="platformFilter" :label="tm('filters.platform')"
                                 :items="availablePlatforms" chips multiple clearable variant="solo-filled" flat
-                                density="compact" hide-details>
+                                density="compact" hide-details rounded="xl">
                                 <template v-slot:selection="{ item }">
                                     <v-chip size="small" label>
                                         {{ item.title }}
@@ -21,7 +37,7 @@
 
                         <v-col cols="12" sm="6" md="4">
                             <v-select v-model="messageTypeFilter" :label="tm('filters.type')" :items="messageTypeItems"
-                                chips multiple clearable variant="solo-filled" density="compact" hide-details flat>
+                                chips multiple clearable variant="solo-filled" density="compact" hide-details flat rounded="xl">
                                 <template v-slot:selection="{ item }">
                                     <v-chip size="small" variant="solo-filled" label>
                                         {{ item.title }}
@@ -32,35 +48,34 @@
 
                         <v-col cols="12" sm="12" md="4">
                             <v-text-field v-model="search" prepend-inner-icon="mdi-magnify"
-                                :label="tm('filters.search')" hide-details density="compact" variant="solo-filled" flat
+                                :label="tm('filters.search')" hide-details density="compact" variant="solo-filled" flat rounded="xl"
                                 clearable></v-text-field>
                         </v-col>
                     </v-row>
-                    <v-btn color="primary" prepend-icon="mdi-refresh" variant="tonal" @click="fetchConversations"
-                        :loading="loading" size="small" class="mr-2">
-                        {{ tm('history.refresh') }}
-                    </v-btn>
-                    <v-btn 
-                        v-if="selectedItems.length > 0" 
-                        color="success" 
-                        prepend-icon="mdi-download"
-                        variant="tonal" 
-                        @click="exportConversations" 
-                        :disabled="loading"
-                        size="small"
-                        class="mr-2">
-                        {{ tm('batch.exportSelected', { count: selectedItems.length }) }}
-                    </v-btn>
-                    <v-btn 
-                        v-if="selectedItems.length > 0" 
-                        color="error" 
-                        prepend-icon="mdi-delete"
-                        variant="tonal" 
-                        @click="confirmBatchDelete" 
-                        :disabled="loading"
-                        size="small">
-                        {{ tm('batch.deleteSelected', { count: selectedItems.length }) }}
-                    </v-btn>
+                    <div class="d-flex ga-2 ml-4">
+                        <v-btn 
+                            v-if="selectedItems.length > 0" 
+                            color="success" 
+                            icon="mdi-download"
+                            variant="tonal" 
+                            @click="exportConversations" 
+                            :disabled="loading"
+                            size="small">
+                            <v-icon>mdi-download</v-icon>
+                            <v-tooltip activator="parent" location="top">{{ tm('batch.exportSelected', { count: selectedItems.length }) }}</v-tooltip>
+                        </v-btn>
+                        <v-btn 
+                            v-if="selectedItems.length > 0" 
+                            color="error" 
+                            icon="mdi-delete"
+                            variant="tonal" 
+                            @click="confirmBatchDelete" 
+                            :disabled="loading"
+                            size="small">
+                            <v-icon>mdi-delete</v-icon>
+                            <v-tooltip activator="parent" location="top">{{ tm('batch.deleteSelected', { count: selectedItems.length }) }}</v-tooltip>
+                        </v-btn>
+                    </div>
                 </v-card-title>
 
                 <v-divider></v-divider>
@@ -370,6 +385,7 @@
 <script>
 import axios from 'axios';
 import { debounce } from 'lodash';
+import { useTheme } from 'vuetify';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useCommonStore } from '@/stores/common';
 import { useCustomizerStore } from '@/stores/customizer';
@@ -379,6 +395,8 @@ import {
     askForConfirmation as askForConfirmationDialog,
     useConfirmDialog
 } from '@/utils/confirmDialog';
+import { computed } from 'vue';
+import '@/styles/dashboard-shell.css';
 
 export default {
     name: 'ConversationPage',
@@ -390,15 +408,18 @@ export default {
     setup() {
         const { t, locale } = useI18n();
         const { tm } = useModuleI18n('features/conversation');
+        const theme = useTheme();
         const customizerStore = useCustomizerStore();
         const confirmDialog = useConfirmDialog();
+        const isDark = computed(() => theme.global.current.value.dark);
 
         return {
             t,
             tm,
             locale,
             customizerStore,
-            confirmDialog
+            confirmDialog,
+            isDark
         };
     },
 

@@ -1,27 +1,37 @@
 ﻿<template>
-  <div class="session-management-page">
-    <v-container fluid class="pa-0">
-      <v-card flat>
-        <v-card-title class="d-flex align-center py-3 px-4">
-          <span class="text-h4">{{ tm('customRules.title') }}</span>
-          <v-btn icon="mdi-information-outline" size="small" variant="text" href="https://astrbot.app/use/custom-rules.html" target="_blank"></v-btn>
-          <v-chip size="small" class="ml-1">{{ totalItems }} {{ tm('customRules.rulesCount') }}</v-chip>
-          <v-row class="me-4 ms-4" dense>
-            <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" :label="tm('search.placeholder')"
-              hide-details clearable variant="solo-filled" flat class="me-4" density="compact"></v-text-field>
-          </v-row>
-          <v-btn v-if="selectedItems.length > 0" color="error" prepend-icon="mdi-delete" variant="tonal"
-            @click="confirmBatchDelete" class="mr-2" size="small">
-            {{ tm('buttons.batchDelete') }} ({{ selectedItems.length }})
-          </v-btn>
-          <v-btn color="success" prepend-icon="mdi-plus" variant="tonal" @click="openAddRuleDialog" class="mr-2"
-            size="small">
-            {{ tm('buttons.addRule') }}
-          </v-btn>
-          <v-btn color="primary" prepend-icon="mdi-refresh" variant="tonal" @click="refreshData" :loading="loading"
-            size="small">
+  <div class="dashboard-page session-management-page" :class="{ 'is-dark': isDark }">
+    <v-container fluid class="dashboard-shell pa-4 pa-md-6">
+      <div class="dashboard-header">
+        <div class="dashboard-header-main">
+          <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'Custom Rules' }}</div>
+          <h1 class="dashboard-title">{{ tm('customRules.title') }}</h1>
+          <p class="dashboard-subtitle">{{ tm('customRules.subtitle') || '为不同的会话、用户或平台设置特定的插件配置和模型。' }}</p>
+        </div>
+        <div class="dashboard-header-actions">
+          <v-btn color="primary" prepend-icon="mdi-refresh" variant="tonal" @click="refreshData" :loading="loading" rounded="xl">
             {{ tm('buttons.refresh') }}
           </v-btn>
+          <v-btn color="success" prepend-icon="mdi-plus" variant="tonal" @click="openAddRuleDialog" rounded="xl">
+            {{ tm('buttons.addRule') }}
+          </v-btn>
+        </div>
+      </div>
+
+      <v-card class="dashboard-card" elevation="0">
+        <v-card-title class="d-flex align-center py-3 px-4">
+          <v-btn icon="mdi-information-outline" size="small" variant="text" href="https://astrbot.app/use/custom-rules.html" target="_blank"></v-btn>
+          <v-chip size="small" color="primary" variant="tonal" label class="ml-1 mr-4">{{ totalItems }} {{ tm('customRules.rulesCount') }}</v-chip>
+          <v-row dense>
+            <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" :label="tm('search.placeholder')"
+              hide-details clearable variant="solo-filled" flat density="compact" rounded="xl"></v-text-field>
+          </v-row>
+          <div class="d-flex ga-2 ml-4">
+            <v-btn v-if="selectedItems.length > 0" color="error" icon="mdi-delete" variant="tonal"
+              @click="confirmBatchDelete" size="small">
+              <v-icon>mdi-delete</v-icon>
+              <v-tooltip activator="parent" location="top">{{ tm('buttons.batchDelete') }} ({{ selectedItems.length }})</v-tooltip>
+            </v-btn>
+          </div>
         </v-card-title>
 
         <v-divider></v-divider>
@@ -521,11 +531,14 @@
 
 <script>
 import axios from 'axios'
+import { useTheme } from 'vuetify'
+import { computed } from 'vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
 import {
   askForConfirmation as askForConfirmationDialog,
   useConfirmDialog
 } from '@/utils/confirmDialog'
+import '@/styles/dashboard-shell.css'
 
 const FOLLOW_CONFIG_VALUE = '__astrbot_follow_config__'
 
@@ -534,12 +547,15 @@ export default {
   setup() {
     const { t } = useI18n()
     const { tm } = useModuleI18n('features/session-management')
+    const theme = useTheme()
     const confirmDialog = useConfirmDialog()
+    const isDark = computed(() => theme.global.current.value.dark)
 
     return {
       t,
       tm,
-      confirmDialog
+      confirmDialog,
+      isDark
     }
   },
   data() {

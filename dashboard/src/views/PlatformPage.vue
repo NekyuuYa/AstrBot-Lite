@@ -1,31 +1,34 @@
 <template>
-  <div class="platform-page">
-    <v-container fluid class="pa-0">
-      <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-8">
-        <div>
-          <h1 class="text-h1 font-weight-bold mb-2 d-flex align-center">
-            <v-icon class="me-2">mdi-robot</v-icon>{{ tm('title') }}
+  <div class="dashboard-page platform-page" :class="{ 'is-dark': isDark }">
+    <v-container fluid class="dashboard-shell pa-4 pa-md-6">
+      <div class="dashboard-header">
+        <div class="dashboard-header-main">
+          <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'Adapters' }}</div>
+          <h1 class="dashboard-title">
+            <v-icon class="me-2" size="small">mdi-robot</v-icon>{{ tm('title') }}
           </h1>
-          <p class="text-subtitle-1 text-medium-emphasis mb-4">
+          <p class="dashboard-subtitle">
             {{ tm('subtitle') }}
           </p>
         </div>
-        <v-btn color="primary" prepend-icon="mdi-plus" variant="tonal" @click="updatingMode = false; showAddPlatformDialog = true"
-          rounded="xl" size="x-large">
-          {{ tm('addAdapter') }}
-        </v-btn>
-      </v-row>
+        <div class="dashboard-header-actions">
+          <v-btn color="primary" prepend-icon="mdi-plus" variant="tonal" @click="updatingMode = false; showAddPlatformDialog = true"
+            rounded="xl">
+            {{ tm('addAdapter') }}
+          </v-btn>
+        </div>
+      </div>
 
       <div>
-        <v-row v-if="(config_data.platform || []).length === 0">
+        <v-row v-if="(config_data.platform || []).length === 0" class="ma-n2">
           <v-col cols="12" class="text-center pa-8">
             <v-icon size="64" color="grey-lighten-1">mdi-connection</v-icon>
             <p class="text-grey mt-4">{{ tm('emptyText') }}</p>
           </v-col>
         </v-row>
 
-        <v-row v-else>
-          <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" md="6" lg="4" xl="3">
+        <v-row v-else class="ma-n2">
+          <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" md="6" lg="4" xl="3" class="pa-2">
             <item-card :item="platform" title-field="id" enabled-field="enable"
               :bglogo="getPlatformIcon(platform.type || platform.id)" @toggle-enabled="platformStatusChange"
               @delete="deletePlatform" @edit="editPlatform">
@@ -91,7 +94,7 @@
       </div>
 
       <!-- 日志部分 -->
-      <v-card elevation="0" class="mt-4 mb-10">
+      <v-card class="dashboard-card mt-4 mb-10" elevation="0">
         <v-card-title class="d-flex align-center py-3 px-4">
           <v-icon class="me-2">mdi-console-line</v-icon>
           <span class="text-h4">{{ tm('logs.title') }}</span>
@@ -237,6 +240,7 @@ import QrCodeViewer from '@/components/shared/QrCodeViewer.vue';
 import { useCommonStore } from '@/stores/common';
 import { useI18n, useModuleI18n, mergeDynamicTranslations } from '@/i18n/composables';
 import { getPlatformIcon } from '@/utils/platformUtils';
+import '@/styles/dashboard-shell.css';
 import {
   askForConfirmation as askForConfirmationDialog,
   useConfirmDialog
@@ -635,12 +639,6 @@ export default {
 </script>
 
 <style scoped>
-.platform-page {
-  padding: 20px;
-  padding-top: 8px;
-  padding-bottom: 40px;
-}
-
 .webhook-info {
   margin-top: 4px;
 }
