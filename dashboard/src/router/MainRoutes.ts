@@ -108,8 +108,7 @@ const MainRoutes = {
     {
       name: 'AarAgentEdit',
       path: '/aar/agents/:agentId',
-      component: () => import('@/views/aar/AgentEditorPage.vue'),
-      props: true
+      component: () => import('@/views/aar/AgentHubPage.vue')
     },
     {
       name: 'AarPrompts',

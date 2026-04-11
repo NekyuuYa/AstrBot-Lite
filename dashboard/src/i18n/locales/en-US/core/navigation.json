@@ -56,7 +56,6 @@
     "skills": "Skills",
     "components": "Components"
   },
-  "config": "Config",
   "chat": "Chat",
   "cron": "Future Tasks",
   "conversation": "Conversation Data",

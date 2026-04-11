@@ -1,9 +1,7 @@
 {
-  "header": {
-    "eyebrow": "AAR Agent Hub"
-  },
+  "eyebrow": "AAR Agent Hub",
   "page": {
-    "title": "Agent 智能体中心",
+    "title": "Agent 中心",
     "subtitle": "创建、配置和管理多个智能体。每个 Agent 可独立绑定人格、Prompt 编排、工具授权和上下文策略。"
   },
   "actions": {
@@ -142,6 +140,7 @@
     "deleteFailed": "删除失败",
     "deleteSuccess": "Agent 已删除",
     "deleteConfirm": "确定要删除 Agent「{id}」吗？此操作不可恢复。",
+    "discardConfirm": "当前修改未保存，确定要离开吗？",
     "deleteDefaultForbidden": "默认 Agent 不可删除",
     "idRequired": "Agent ID 不能为空",
     "nameRequired": "名称不能为空"

@@ -1,7 +1,5 @@
 {
-  "header": {
-    "eyebrow": "AAR Prompt Registry"
-  },
+  "eyebrow": "AAR Prompt Registry",
   "page": {
     "title": "Реестр промптов",
     "subtitle": "Управление фрагментами: встроенные, от плагинов и пользовательские. 7 этапов (System Base -> Refinement) строго контролируют порядок System Prompt."

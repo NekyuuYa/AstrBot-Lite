@@ -1,7 +1,5 @@
 {
-  "header": {
-    "eyebrow": "AAR Prompt Registry"
-  },
+  "eyebrow": "AAR Prompt Registry",
   "page": {
     "title": "Prompt 注册表",
     "subtitle": "管理所有 Prompt 碎片：内置、插件注入和自定义条目。七大阶段 (System Base -> Refinement) 严格控制最终发送给大模型的 System Prompt 顺序。"
@@ -40,7 +38,7 @@
     "titleCreate": "新建 Prompt",
     "titleEdit": "编辑 Prompt",
     "promptId": "Prompt ID",
-    "promptIdHint": "唯一字符串标识，如 'sys.safety' 或 'plugin.weather.greeting'",
+    "promptIdHint": "唯一字符串标识，如 'sys.default_persona' 或 'plugin.weather.greeting'",
     "name": "显示名称",
     "nameHint": "易读的展示名称",
     "category": "阶段分类",

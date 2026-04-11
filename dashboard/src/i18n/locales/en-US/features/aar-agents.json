@@ -1,7 +1,5 @@
 {
-  "header": {
-    "eyebrow": "AAR Agent Hub"
-  },
+  "eyebrow": "AAR Agent Hub",
   "page": {
     "title": "Agent Hub",
     "subtitle": "Create, configure, and manage multiple agents. Each Agent can independently bind a persona, prompt orchestration, tool authorization, and context policy."
@@ -142,6 +140,7 @@
     "deleteFailed": "Failed to delete",
     "deleteSuccess": "Agent deleted",
     "deleteConfirm": "Are you sure you want to delete agent \"{id}\"? This action cannot be undone.",
+    "discardConfirm": "You have unsaved changes. Are you sure you want to leave?",
     "deleteDefaultForbidden": "Cannot delete the default agent",
     "idRequired": "Agent ID is required",
     "nameRequired": "Name is required"

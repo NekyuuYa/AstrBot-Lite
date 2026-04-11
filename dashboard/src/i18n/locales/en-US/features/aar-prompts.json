@@ -1,7 +1,5 @@
 {
-  "header": {
-    "eyebrow": "AAR Prompt Registry"
-  },
+  "eyebrow": "AAR Prompt Registry",
   "page": {
     "title": "Prompt Registry",
     "subtitle": "Manage all prompt fragments: built-in, plugin-injected, and user-defined entries. The 7 stages (System Base -> Refinement) strictly control the final System Prompt order sent to the LLM."
@@ -40,7 +38,7 @@
     "titleCreate": "Create Prompt",
     "titleEdit": "Edit Prompt",
     "promptId": "Prompt ID",
-    "promptIdHint": "Unique string identifier, e.g. 'sys.safety' or 'plugin.weather.greeting'",
+    "promptIdHint": "Unique string identifier, e.g. 'sys.default_persona' or 'plugin.weather.greeting'",
     "name": "Display Name",
     "nameHint": "A human-readable display name",
     "category": "Stage Category",
