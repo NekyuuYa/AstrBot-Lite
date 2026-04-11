@@ -213,6 +213,9 @@ class ConversationCommands:
         """遍历分页后的对话生成列表显示"""
         provider_settings = cfg.get("provider_settings", {})
         platform_name = message.get_platform_name()
+        agent_mgr = getattr(self.context, "aar_agent_mgr", None)
+        active_agent = agent_mgr.resolve_agent() if agent_mgr else None
+
         for conv in conversations_paged:
             (
                 persona_id,
@@ -224,6 +227,7 @@ class ConversationCommands:
                 conversation_persona_id=conv.persona_id,
                 platform_name=platform_name,
                 provider_settings=provider_settings,
+                agent_persona_id=active_agent.persona_id if active_agent else None,
             )
             if persona_id == "[%None]":
                 persona_name = "无"

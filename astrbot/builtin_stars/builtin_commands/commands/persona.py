@@ -80,6 +80,8 @@ class PersonaCommands:
                 "provider_settings",
                 {},
             )
+            agent_mgr = getattr(self.context, "aar_agent_mgr", None)
+            active_agent = agent_mgr.resolve_agent() if agent_mgr else None
             (
                 persona_id,
                 _,
@@ -90,6 +92,7 @@ class PersonaCommands:
                 conversation_persona_id=conv.persona_id,
                 platform_name=message.get_platform_name(),
                 provider_settings=provider_settings,
+                agent_persona_id=active_agent.persona_id if active_agent else None,
             )
 
             if persona_id == "[%None]":

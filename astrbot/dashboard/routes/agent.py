@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict
 
 from quart import request
 
@@ -83,6 +82,10 @@ class AgentRoute(Route):
             skills=body.get("skills"),
             context_policy=body.get("context_policy", "sys.batch_eviction"),
             interceptors=body.get("interceptors"),
+            knowledgebase=body.get("knowledgebase"),
+            websearch=body.get("websearch"),
+            computer_use=body.get("computer_use"),
+            proactive_capability=body.get("proactive_capability"),
             config=body.get("config"),
             tags=body.get("tags"),
         )
@@ -107,6 +110,12 @@ class AgentRoute(Route):
             skills=body.get("skills", existing.skills),
             context_policy=body.get("context_policy", existing.context_policy),
             interceptors=body.get("interceptors", existing.interceptors),
+            knowledgebase=body.get("knowledgebase", existing.knowledgebase),
+            websearch=body.get("websearch", existing.websearch),
+            computer_use=body.get("computer_use", existing.computer_use),
+            proactive_capability=body.get(
+                "proactive_capability", existing.proactive_capability
+            ),
             config=body.get("config", existing.config),
             tags=body.get("tags", existing.tags),
         )
@@ -132,6 +141,10 @@ def _agent_to_dict(agent) -> dict:
         "skills": agent.skills,
         "context_policy": agent.context_policy,
         "interceptors": agent.interceptors,
+        "knowledgebase": agent.knowledgebase,
+        "websearch": agent.websearch,
+        "computer_use": agent.computer_use,
+        "proactive_capability": agent.proactive_capability,
         "config": agent.config,
         "tags": agent.tags,
         "created_at": str(agent.created_at) if agent.created_at else None,
