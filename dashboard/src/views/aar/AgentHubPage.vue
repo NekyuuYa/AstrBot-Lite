@@ -1,33 +1,34 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 import axios from 'axios'
+
 import { useModuleI18n } from '@/i18n/composables'
+import AgentEditorPage from '@/views/aar/AgentEditorPage.vue'
 import '@/styles/dashboard-shell.css'
 
 const theme = useTheme()
 const isDark = computed(() => theme.global.current.value.dark)
 const { tm } = useModuleI18n('features/aar-agents')
+const route = useRoute()
 const router = useRouter()
 
-// --- State ---
 const agents = ref<any[]>([])
 const loading = ref(false)
 const search = ref('')
 const filterTag = ref('')
+const selectedAgentId = ref<string>('__new__')
 
-// Snackbar
 const snackbar = ref({ show: false, text: '', color: 'success' })
 function toast(text: string, color = 'success') {
   snackbar.value = { show: true, text, color }
 }
 
-// --- Computed ---
 const allTags = computed(() => {
   const tags = new Set<string>()
   agents.value.forEach((a: any) => {
-    if (a.tags && Array.isArray(a.tags)) {
+    if (Array.isArray(a.tags)) {
       a.tags.forEach((t: string) => tags.add(t))
     }
   })
@@ -50,20 +51,31 @@ const filteredAgents = computed(() => {
   return list
 })
 
-const overviewStats = computed(() => {
-  const total = agents.value.length
-  const withPersona = agents.value.filter((a: any) => a.persona_id).length
-  const withTools = agents.value.filter((a: any) => a.tools && a.tools.length > 0).length
-  const withPrompts = agents.value.filter((a: any) => a.prompts && a.prompts.length > 0).length
-  return { total, withPersona, withTools, withPrompts }
-})
+function syncRouteBySelection(agentId: string) {
+  // Removed to make this a fixed page
+}
 
-// --- API ---
+function pickInitialSelection() {
+  if (agents.value.length > 0) {
+    selectedAgentId.value = agents.value[0].agent_id
+  } else {
+    selectedAgentId.value = '__new__'
+  }
+}
+
 async function loadAgents() {
   loading.value = true
   try {
     const res = await axios.get('/api/agents')
-    if (res.data.status === 'ok') agents.value = res.data.data
+    if (res.data.status === 'ok') {
+      agents.value = res.data.data
+      const hasSelected = agents.value.some(
+        (a: any) => a.agent_id === selectedAgentId.value
+      )
+      if (selectedAgentId.value !== '__new__' && !hasSelected) {
+        pickInitialSelection()
+      }
+    }
   } catch {
     toast(tm('messages.loadFailed'), 'error')
   } finally {
@@ -77,6 +89,9 @@ async function deleteAgent(agentId: string) {
     const res = await axios.delete(`/api/agents/${agentId}`)
     if (res.data.status === 'ok') {
       toast(tm('messages.deleteSuccess'))
+      if (selectedAgentId.value === agentId) {
+        selectedAgentId.value = '__new__'
+      }
       await loadAgents()
     } else {
       toast(res.data.message || tm('messages.deleteFailed'), 'error')
@@ -86,178 +101,150 @@ async function deleteAgent(agentId: string) {
   }
 }
 
-function editAgent(agentId: string) {
-  router.push(`/aar/agents/${agentId}`)
+const editorRef = ref<any>(null)
+
+function selectAgent(agentId: string) {
+  if (selectedAgentId.value === agentId) return
+  if (editorRef.value?.isDirty) {
+    if (!confirm(tm('messages.discardConfirm') || '当前修改未保存，确定要离开吗？')) return
+  }
+  selectedAgentId.value = agentId
 }
 
 function createAgent() {
-  router.push('/aar/agents/__new__')
+  if (selectedAgentId.value === '__new__') return
+  if (editorRef.value?.isDirty) {
+    if (!confirm(tm('messages.discardConfirm') || '当前修改未保存，确定要离开吗？')) return
+  }
+  selectedAgentId.value = '__new__'
 }
 
-function isDefault(agent: any) {
-  return agent.agent_id === 'sys.default'
+async function onEditorSaved(agentId: string) {
+  selectedAgentId.value = agentId
+  await loadAgents()
 }
 
-onMounted(loadAgents)
+onMounted(async () => {
+  await loadAgents()
+  pickInitialSelection()
+})
 </script>
 
 <template>
   <div class="dashboard-page aar-agents-page" :class="{ 'is-dark': isDark }">
     <v-container fluid class="dashboard-shell pa-4 pa-md-6">
-      <!-- Header -->
       <div class="dashboard-header">
         <div class="dashboard-header-main">
-          <div class="dashboard-eyebrow">{{ tm('header.eyebrow') }}</div>
-          <h1 class="dashboard-title">{{ tm('page.title') }}</h1>
-          <p class="dashboard-subtitle">{{ tm('page.subtitle') }}</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <v-btn variant="tonal" size="small" @click="loadAgents" :loading="loading">
-            <v-icon start>mdi-refresh</v-icon>{{ tm('actions.create').replace(tm('actions.create'), '') }}
-          </v-btn>
-          <v-btn color="primary" size="small" @click="createAgent">
-            <v-icon start>mdi-plus</v-icon>{{ tm('actions.create') }}
-          </v-btn>
+        <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'AAR Agent Hub' }}</div>
+        <h1 class="dashboard-title">{{ tm('page.title') }}</h1>          <p class="dashboard-subtitle">{{ tm('page.subtitle') }}</p>
         </div>
       </div>
 
-      <!-- Overview Cards -->
-      <div class="dashboard-overview-grid mb-5">
-        <div class="dashboard-card dashboard-overview-card">
-          <div class="dashboard-card-icon"><v-icon size="18">mdi-robot-outline</v-icon></div>
-          <div class="dashboard-card-label">{{ tm('overview.total') }}</div>
-          <div class="dashboard-card-value">{{ overviewStats.total }}</div>
-          <div class="dashboard-card-note">{{ tm('overview.totalNote') }}</div>
-        </div>
-        <div class="dashboard-card dashboard-overview-card">
-          <div class="dashboard-card-icon"><v-icon size="18">mdi-heart-outline</v-icon></div>
-          <div class="dashboard-card-label">{{ tm('overview.withPersona') }}</div>
-          <div class="dashboard-card-value">{{ overviewStats.withPersona }}</div>
-          <div class="dashboard-card-note">{{ tm('overview.withPersonaNote') }}</div>
-        </div>
-        <div class="dashboard-card dashboard-overview-card">
-          <div class="dashboard-card-icon"><v-icon size="18">mdi-wrench-outline</v-icon></div>
-          <div class="dashboard-card-label">{{ tm('overview.withTools') }}</div>
-          <div class="dashboard-card-value">{{ overviewStats.withTools }}</div>
-          <div class="dashboard-card-note">{{ tm('overview.withToolsNote') }}</div>
-        </div>
-        <div class="dashboard-card dashboard-overview-card">
-          <div class="dashboard-card-icon"><v-icon size="18">mdi-script-text-outline</v-icon></div>
-          <div class="dashboard-card-label">{{ tm('overview.withPrompts') }}</div>
-          <div class="dashboard-card-value">{{ overviewStats.withPrompts }}</div>
-          <div class="dashboard-card-note">{{ tm('overview.withPromptsNote') }}</div>
-        </div>
-      </div>
-
-      <!-- Filters -->
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px">
-        <v-text-field
-          v-model="search"
-          :placeholder="tm('filters.search')"
-          prepend-inner-icon="mdi-magnify"
-          density="compact"
-          variant="outlined"
-          hide-details
-          clearable
-          style="max-width: 280px"
-        />
-        <v-select
-          v-if="allTags.length > 0"
-          v-model="filterTag"
-          :items="[{ title: tm('filters.allTags'), value: '' }, ...allTags.map(t => ({ title: t, value: t }))]"
-          density="compact"
-          variant="outlined"
-          hide-details
-          style="max-width: 180px"
-        />
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="!loading && filteredAgents.length === 0" class="dashboard-card dashboard-card--padded" style="text-align: center; padding: 60px 20px">
-        <v-icon size="48" color="grey-lighten-1" class="mb-3">mdi-robot-off-outline</v-icon>
-        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px">{{ tm('empty.title') }}</h3>
-        <p class="dashboard-empty mb-4">{{ tm('empty.subtitle') }}</p>
-        <v-btn color="primary" @click="createAgent">
-          <v-icon start>mdi-plus</v-icon>{{ tm('empty.action') }}
-        </v-btn>
-      </div>
-
-      <!-- Loading -->
-      <div v-else-if="loading" style="text-align: center; padding: 60px">
-        <v-progress-circular indeterminate size="40" />
-      </div>
-
-      <!-- Agent Card Grid -->
-      <div v-else class="agent-card-grid">
-        <div
-          v-for="agent in filteredAgents"
-          :key="agent.agent_id"
-          class="dashboard-card dashboard-card--padded agent-card"
-          @click="editAgent(agent.agent_id)"
-        >
-          <!-- Card Header -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px">
-            <div style="min-width: 0">
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
-                <h3 style="font-size: 16px; font-weight: 600; margin: 0">{{ agent.name }}</h3>
-                <v-chip v-if="isDefault(agent)" size="x-small" color="primary" variant="flat">
-                  {{ tm('card.defaultBadge') }}
-                </v-chip>
+      <v-row class="agent-workbench ma-n2">
+        <!-- 左侧 Agent 列表 -->
+        <v-col cols="12" md="4" lg="3" class="pa-2">
+          <v-card class="dashboard-card h-100 d-flex flex-column" elevation="0">
+            <div class="sidebar-header pa-4 pb-2">
+              <div class="d-flex align-center justify-space-between mb-4">
+                <div class="d-flex align-center">
+                  <div class="dashboard-section-title mr-2">{{ tm('page.title') }}</div>
+                  <v-chip size="x-small" variant="tonal" label color="primary">
+                    {{ agents.length }}
+                  </v-chip>
+                </div>
+                <v-btn color="primary" variant="tonal" size="small" rounded="xl" prepend-icon="mdi-plus" @click="createAgent">
+                  {{ tm('actions.create') }}
+                </v-btn>
               </div>
-              <div style="font-size: 12px; color: var(--dashboard-muted); font-family: monospace; margin-top: 4px">
-                {{ agent.agent_id }}
-              </div>
+              
+              <v-text-field
+                v-model="search"
+                :placeholder="tm('filters.search')"
+                prepend-inner-icon="mdi-magnify"
+                density="compact"
+                variant="solo-filled"
+                flat
+                hide-details
+                clearable
+                rounded="xl"
+                class="mb-3"
+              />
+
+              <v-select
+                v-if="allTags.length > 0"
+                v-model="filterTag"
+                :items="[
+                  { title: tm('filters.allTags'), value: '' },
+                  ...allTags.map((t) => ({ title: t, value: t })),
+                ]"
+                density="compact"
+                variant="solo-filled"
+                flat
+                hide-details
+                rounded="xl"
+              />
             </div>
-            <div style="display: flex; gap: 4px" @click.stop>
-              <v-btn icon size="x-small" variant="text" @click="editAgent(agent.agent_id)">
-                <v-icon size="16">mdi-pencil-outline</v-icon>
-              </v-btn>
-              <v-btn
-                v-if="!isDefault(agent)"
-                icon size="x-small" variant="text" color="error"
-                @click="deleteAgent(agent.agent_id)"
+
+            <v-divider></v-divider>
+
+            <v-list class="agent-list pa-2 flex-grow-1" nav density="compact" lines="two">
+              <v-list-item
+                v-for="agent in filteredAgents"
+                :key="agent.agent_id"
+                class="mb-1"
+                :active="selectedAgentId === agent.agent_id"
+                color="primary"
+                rounded="lg"
+                @click="selectAgent(agent.agent_id)"
               >
-                <v-icon size="16">mdi-delete-outline</v-icon>
-              </v-btn>
-            </div>
-          </div>
+                <template #prepend>
+                  <v-avatar size="32" color="secondary" variant="tonal">
+                    <v-icon size="20">mdi-robot</v-icon>
+                  </v-avatar>
+                </template>
+                
+                <v-list-item-title class="font-weight-bold">{{ agent.name }}</v-list-item-title>
+                <v-list-item-subtitle class="text-caption text-mono">{{ agent.agent_id }}</v-list-item-subtitle>
 
-          <!-- Tags -->
-          <div v-if="agent.tags && agent.tags.length" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px">
-            <v-chip v-for="tag in agent.tags" :key="tag" size="x-small" variant="tonal" color="primary">
-              {{ tag }}
-            </v-chip>
-          </div>
-          <div v-else style="font-size: 12px; color: var(--dashboard-subtle); margin-bottom: 14px">
-            {{ tm('card.noTags') }}
-          </div>
+                <template #append>
+                  <v-btn
+                    v-if="agent.agent_id !== 'sys.default'"
+                    icon="mdi-delete-outline"
+                    variant="text"
+                    size="x-small"
+                    color="error"
+                    @click.stop="deleteAgent(agent.agent_id)"
+                  ></v-btn>
+                </template>
+              </v-list-item>
+            </v-list>
 
-          <!-- Capabilities Preview -->
-          <div class="dashboard-meta-list" style="margin-top: 0; padding-top: 0; border-top: none">
-            <div class="dashboard-meta-row">
-              <span>{{ tm('card.persona') }}</span>
-              <span style="font-weight: 500; color: var(--dashboard-text)">
-                {{ agent.persona_id || tm('card.nonePersona') }}
-              </span>
+            <div v-if="loading" class="d-flex justify-center pa-8">
+              <v-progress-circular indeterminate color="primary" />
             </div>
-            <div class="dashboard-meta-row">
-              <span>{{ tm('card.tools') }}</span>
-              <v-chip size="x-small" variant="tonal">{{ agent.tools ? agent.tools.length : 0 }}</v-chip>
-            </div>
-            <div class="dashboard-meta-row">
-              <span>{{ tm('card.prompts') }}</span>
-              <v-chip size="x-small" variant="tonal">{{ agent.prompts ? agent.prompts.length : 0 }}</v-chip>
-            </div>
-            <div class="dashboard-meta-row">
-              <span>{{ tm('card.policy') }}</span>
-              <span style="font-size: 12px; font-family: monospace">{{ agent.context_policy }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+          </v-card>
+        </v-col>
 
-      <!-- Snackbar -->
-      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="bottom right">
+        <!-- 右侧 编辑器 -->
+        <v-col cols="12" md="8" lg="9" class="pa-2">
+          <v-card class="dashboard-card h-100 overflow-auto" elevation="0">
+            <AgentEditorPage
+              ref="editorRef"
+              embedded
+              :agent-id="selectedAgentId"
+              @saved="onEditorSaved"
+            />
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <v-snackbar
+        v-model="snackbar.show"
+        :color="snackbar.color"
+        :timeout="3000"
+        location="bottom right"
+        rounded="xl"
+      >
         {{ snackbar.text }}
       </v-snackbar>
     </v-container>
@@ -265,19 +252,22 @@ onMounted(loadAgents)
 </template>
 
 <style scoped>
-.agent-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 16px;
+.agent-workbench {
+  min-height: calc(100vh - 180px);
 }
 
-.agent-card {
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+.text-mono {
+  font-family: monospace;
 }
 
-.agent-card:hover {
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 0 0 1px rgba(var(--v-theme-primary), 0.2);
+.agent-list {
+  max-height: calc(100vh - 380px);
+  overflow-y: auto;
+}
+
+@media (max-width: 960px) {
+  .agent-workbench {
+    flex-direction: column;
+  }
 }
 </style>

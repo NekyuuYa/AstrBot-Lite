@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 import axios from 'axios'
@@ -7,37 +7,60 @@ import { useModuleI18n } from '@/i18n/composables'
 import DialogOptionSelector from '@/components/shared/DialogOptionSelector.vue'
 import '@/styles/dashboard-shell.css'
 
-const props = defineProps<{ agentId?: string }>()
+const props = defineProps<{ agentId?: string; embedded?: boolean }>()
+const emit = defineEmits<{ (e: 'saved', agentId: string): void }>()
 const route = useRoute()
 const router = useRouter()
 const theme = useTheme()
 const isDark = computed(() => theme.global.current.value.dark)
 const { tm } = useModuleI18n('features/aar-agents')
+const isEmbedded = computed(() => Boolean(props.embedded))
 
 const isNew = computed(() => {
+  if (props.embedded && props.agentId) return props.agentId === '__new__'
   const id = props.agentId || (route.params.agentId as string)
   return id === '__new__'
 })
 const currentAgentId = computed(() => {
+  if (props.embedded && props.agentId) return props.agentId === '__new__' ? '' : props.agentId
   const id = props.agentId || (route.params.agentId as string)
   return id === '__new__' ? '' : id
 })
 
+function createEmptyForm() {
+  return {
+    agent_id: '',
+    name: '',
+    persona_id: null,
+    prompts: [],
+    tools: [],
+    skills: [],
+    context_policy: 'sys.batch_eviction',
+    interceptors: [],
+    knowledgebase: defaultKnowledgebaseConfig(),
+    websearch: defaultWebsearchConfig(),
+    computer_use: defaultComputerUseConfig(),
+    proactive_capability: defaultProactiveCapabilityConfig(),
+    config: {},
+    tags: [],
+  }
+}
+
 // --- State ---
 const loading = ref(false)
-const form = ref<any>({
-  agent_id: '',
-  name: '',
-  persona_id: null,
-  prompts: [],
-  tools: [],
-  skills: [],
-  context_policy: 'sys.batch_eviction',
-  interceptors: [],
-  config: defaultCapConfig(),
-  tags: [],
-})
+const ready = ref(false)
+const form = ref<any>(createEmptyForm())
+const initialFormJson = ref('')
 const tagInput = ref('')
+
+const isDirty = computed(() => {
+  if (loading.value || !ready.value) return false
+  return JSON.stringify(form.value) !== initialFormJson.value
+})
+
+defineExpose({ isDirty, saveAgent })
+
+// ... (keep all helper functions like defaultKnowledgebaseConfig, etc.)
 
 // Available prompts for the picker
 const allPrompts = ref<any[]>([])
@@ -54,13 +77,73 @@ const allTools = ref<any[]>([])
 const allSkills = ref<any[]>([])
 
 // Capability config helpers
-function defaultCapConfig() {
+function defaultKnowledgebaseConfig() {
   return {
-    knowledgebase: { enabled: false, kb_names: [] as string[], fusion_top_k: 3, final_top_k: 3, agentic_mode: false },
-    websearch: { enabled: false, provider: 'tavily', tavily_key: [] as string[], bocha_key: [] as string[], brave_key: [] as string[], baidu_key: '', show_link: true },
-    computer_use: { runtime: 'none', require_admin: false, booter: 'shipyard_neo', neo_endpoint: '', neo_token: '', neo_profile: '', neo_ttl: 600 },
-    proactive: { enabled: false },
+    enabled: false,
+    kb_names: [] as string[],
+    fusion_top_k: 3,
+    final_top_k: 3,
+    agentic_mode: false,
   }
+}
+
+function defaultWebsearchConfig() {
+  return {
+    enabled: false,
+    provider: 'tavily',
+    tavily_key: [] as string[],
+    bocha_key: [] as string[],
+    brave_key: [] as string[],
+    baidu_key: '',
+    show_link: true,
+  }
+}
+
+function defaultComputerUseConfig() {
+  return {
+    runtime: 'none',
+    require_admin: false,
+    booter: 'shipyard_neo',
+    neo_endpoint: '',
+    neo_token: '',
+    neo_profile: '',
+    neo_ttl: 600,
+  }
+}
+
+function defaultProactiveCapabilityConfig() {
+  return {
+    enabled: false,
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function mergeCapabilityConfig<T extends Record<string, any>>(defaults: T, raw: unknown): T {
+  return {
+    ...defaults,
+    ...(isPlainObject(raw) ? raw : {}),
+  }
+}
+
+function stripCapabilityConfig(raw: unknown) {
+  const next = isPlainObject(raw) ? { ...raw } : {}
+  delete next.knowledgebase
+  delete next.websearch
+  delete next.computer_use
+  delete next.proactive_capability
+  delete next.proactive
+  return next
+}
+
+function stripBuiltinTools(toolNames: unknown) {
+  if (!Array.isArray(toolNames)) return []
+  return toolNames.filter((toolName) => {
+    const tool = allTools.value.find((item: any) => item.name === toolName)
+    return tool?.origin !== 'builtin'
+  })
 }
 
 // Snackbar
@@ -117,11 +200,13 @@ const contextPolicySelectorItems = computed(() =>
 )
 
 const toolSelectorItems = computed(() =>
-  allTools.value.map((tool: any) => ({
-    title: tool.name,
-    value: tool.name,
-    subtitle: tool.description || tool.origin_name || ''
-  }))
+  allTools.value
+    .filter((tool: any) => tool.origin !== 'builtin')
+    .map((tool: any) => ({
+      title: tool.name,
+      value: tool.name,
+      subtitle: tool.description || tool.origin_name || ''
+    }))
 )
 
 const skillSelectorItems = computed(() =>
@@ -134,32 +219,37 @@ const skillSelectorItems = computed(() =>
 
 // --- API ---
 async function loadAgent() {
-  if (isNew.value) return
+  if (isNew.value) {
+    form.value = createEmptyForm()
+    initialFormJson.value = JSON.stringify(form.value)
+    return
+  }
   loading.value = true
   try {
     const res = await axios.get(`/api/agents/${currentAgentId.value}`)
     if (res.data.status === 'ok') {
       const data = res.data.data
-      const defaults = defaultCapConfig()
       const rawCfg = data.config || {}
       form.value = {
         agent_id: data.agent_id || '',
         name: data.name || '',
         persona_id: data.persona_id || null,
         prompts: data.prompts || [],
-        tools: data.tools || [],
+        tools: stripBuiltinTools(data.tools || []),
         skills: data.skills || [],
         context_policy: data.context_policy || 'sys.batch_eviction',
         interceptors: data.interceptors || [],
-        config: {
-          ...rawCfg,
-          knowledgebase: { ...defaults.knowledgebase, ...(rawCfg.knowledgebase || {}) },
-          websearch: { ...defaults.websearch, ...(rawCfg.websearch || {}) },
-          computer_use: { ...defaults.computer_use, ...(rawCfg.computer_use || {}) },
-          proactive: { ...defaults.proactive, ...(rawCfg.proactive || {}) },
-        },
+        knowledgebase: mergeCapabilityConfig(defaultKnowledgebaseConfig(), data.knowledgebase || rawCfg.knowledgebase),
+        websearch: mergeCapabilityConfig(defaultWebsearchConfig(), data.websearch || rawCfg.websearch),
+        computer_use: mergeCapabilityConfig(defaultComputerUseConfig(), data.computer_use || rawCfg.computer_use),
+        proactive_capability: mergeCapabilityConfig(
+          defaultProactiveCapabilityConfig(),
+          data.proactive_capability || data.proactive || rawCfg.proactive_capability || rawCfg.proactive,
+        ),
+        config: stripCapabilityConfig(rawCfg),
         tags: data.tags || [],
       }
+      initialFormJson.value = JSON.stringify(form.value)
     }
   } catch {
     toast(tm('messages.loadFailed'), 'error')
@@ -216,11 +306,20 @@ async function saveAgent() {
   try {
     const url = isNew.value ? '/api/agents' : `/api/agents/${f.agent_id}`
     const method = isNew.value ? 'post' : 'put'
-    const res = await axios[method](url, f)
+    const payload = {
+      ...f,
+      tools: stripBuiltinTools(f.tools),
+      config: stripCapabilityConfig(f.config),
+    }
+    const res = await axios[method](url, payload)
     if (res.data.status === 'ok') {
       toast(tm('messages.saveSuccess'))
+      initialFormJson.value = JSON.stringify(form.value)
+      emit('saved', f.agent_id)
       if (isNew.value) {
-        router.replace(`/aar/agents/${f.agent_id}`)
+        if (!isEmbedded.value) {
+          router.replace(`/aar/agents/${f.agent_id}`)
+        }
       }
     } else {
       toast(res.data.message || tm('messages.saveFailed'), 'error')
@@ -259,22 +358,33 @@ function removePromptFromAgent(promptId: string) {
 }
 
 function goBack() {
+  if (isEmbedded.value) return
   router.push('/aar/agents')
 }
 
 onMounted(async () => {
   await Promise.all([loadPrompts(), loadPersonas(), loadTools(), loadSkills()])
+  ready.value = true
+  await loadAgent()
+})
+
+watch([currentAgentId, isNew], async () => {
+  if (!ready.value) return
   await loadAgent()
 })
 </script>
 
 <template>
-  <div class="dashboard-page aar-agent-editor-page" :class="{ 'is-dark': isDark }">
-    <v-container fluid class="dashboard-shell pa-4 pa-md-6">
+  <div :class="[isEmbedded ? '' : 'dashboard-page aar-agent-editor-page', { 'is-dark': isDark }]">
+    <component
+      :is="isEmbedded ? 'div' : 'v-container'"
+      fluid
+      :class="isEmbedded ? 'pa-4' : 'dashboard-shell pa-4 pa-md-6'"
+    >
       <!-- Header -->
-      <div class="dashboard-header">
+      <div v-if="!isEmbedded" class="dashboard-header">
         <div class="dashboard-header-main">
-          <div class="dashboard-eyebrow">{{ tm('header.eyebrow') }}</div>
+          <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'AAR Agent Hub' }}</div>
           <h1 class="dashboard-title">{{ isNew ? tm('editor.titleCreate') : tm('editor.titleEdit') }}</h1>
         </div>
         <div class="dashboard-header-actions">
@@ -286,12 +396,28 @@ onMounted(async () => {
           </v-btn>
         </div>
       </div>
-
-      <div v-if="loading" style="text-align: center; padding: 60px">
-        <v-progress-circular indeterminate size="40" />
+      <div v-else class="dashboard-header" style="margin-bottom: 16px">
+        <div class="dashboard-header-main">
+          <div class="dashboard-eyebrow">{{ tm('eyebrow') || 'AAR Agent Hub' }}</div>
+          <h2 class="dashboard-title" style="font-size: 20px">{{ isNew ? tm('editor.titleCreate') : tm('editor.titleEdit') }}</h2>
+        </div>
+        <div class="dashboard-header-actions">
+          <v-btn color="primary" size="small" @click="saveAgent" :loading="loading" rounded="xl">
+            <v-icon start>mdi-content-save-outline</v-icon>{{ tm('actions.save') }}
+          </v-btn>
+        </div>
       </div>
 
-      <div v-else>
+      <v-progress-linear
+        v-if="loading"
+        indeterminate
+        color="primary"
+        absolute
+        top
+        style="z-index: 10"
+      />
+
+      <div v-show="ready" :style="{ opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }">
         <!-- Section: Basic Info -->
         <div class="dashboard-section-head">
           <div>
@@ -455,12 +581,12 @@ onMounted(async () => {
               <div style="display: flex; align-items: center; gap: 10px">
                 <v-icon size="18">mdi-database-outline</v-icon>
                 <span>{{ tm('editor.cap.knowledgebase.title') }}</span>
-                <v-chip v-if="form.config.knowledgebase.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+                <v-chip v-if="form.knowledgebase.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <v-switch
-                v-model="form.config.knowledgebase.enabled"
+                v-model="form.knowledgebase.enabled"
                 :label="tm('editor.cap.knowledgebase.enable')"
                 :hint="tm('editor.cap.knowledgebase.enableHint')"
                 persistent-hint
@@ -468,9 +594,9 @@ onMounted(async () => {
                 color="primary"
                 class="mb-3"
               />
-              <div v-if="form.config.knowledgebase.enabled">
+              <div v-if="form.knowledgebase.enabled">
                 <v-combobox
-                  v-model="form.config.knowledgebase.kb_names"
+                  v-model="form.knowledgebase.kb_names"
                   :label="tm('editor.cap.knowledgebase.names')"
                   :hint="tm('editor.cap.knowledgebase.namesHint')"
                   persistent-hint
@@ -483,7 +609,7 @@ onMounted(async () => {
                 />
                 <div class="dashboard-form-grid mb-3">
                   <v-text-field
-                    v-model.number="form.config.knowledgebase.fusion_top_k"
+                    v-model.number="form.knowledgebase.fusion_top_k"
                     :label="tm('editor.cap.knowledgebase.fusionTopK')"
                     :hint="tm('editor.cap.knowledgebase.fusionTopKHint')"
                     persistent-hint
@@ -492,7 +618,7 @@ onMounted(async () => {
                     variant="outlined"
                   />
                   <v-text-field
-                    v-model.number="form.config.knowledgebase.final_top_k"
+                    v-model.number="form.knowledgebase.final_top_k"
                     :label="tm('editor.cap.knowledgebase.finalTopK')"
                     :hint="tm('editor.cap.knowledgebase.finalTopKHint')"
                     persistent-hint
@@ -502,7 +628,7 @@ onMounted(async () => {
                   />
                 </div>
                 <v-switch
-                  v-model="form.config.knowledgebase.agentic_mode"
+                  v-model="form.knowledgebase.agentic_mode"
                   :label="tm('editor.cap.knowledgebase.agenticMode')"
                   :hint="tm('editor.cap.knowledgebase.agenticModeHint')"
                   persistent-hint
@@ -519,12 +645,12 @@ onMounted(async () => {
               <div style="display: flex; align-items: center; gap: 10px">
                 <v-icon size="18">mdi-web</v-icon>
                 <span>{{ tm('editor.cap.websearch.title') }}</span>
-                <v-chip v-if="form.config.websearch.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+                <v-chip v-if="form.websearch.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <v-switch
-                v-model="form.config.websearch.enabled"
+                v-model="form.websearch.enabled"
                 :label="tm('editor.cap.websearch.enable')"
                 :hint="tm('editor.cap.websearch.enableHint')"
                 persistent-hint
@@ -532,10 +658,10 @@ onMounted(async () => {
                 color="primary"
                 class="mb-3"
               />
-              <div v-if="form.config.websearch.enabled">
+              <div v-if="form.websearch.enabled">
                 <div class="dashboard-form-grid mb-3">
                   <v-select
-                    v-model="form.config.websearch.provider"
+                    v-model="form.websearch.provider"
                     :label="tm('editor.cap.websearch.provider')"
                     :items="[
                       { title: 'Tavily', value: 'tavily' },
@@ -547,15 +673,15 @@ onMounted(async () => {
                     variant="outlined"
                   />
                   <v-switch
-                    v-model="form.config.websearch.show_link"
+                    v-model="form.websearch.show_link"
                     :label="tm('editor.cap.websearch.showLink')"
                     density="compact"
                     color="primary"
                   />
                 </div>
                 <v-combobox
-                  v-if="form.config.websearch.provider === 'tavily'"
-                  v-model="form.config.websearch.tavily_key"
+                  v-if="form.websearch.provider === 'tavily'"
+                  v-model="form.websearch.tavily_key"
                   :label="tm('editor.cap.websearch.tavilyKey')"
                   :hint="tm('editor.cap.websearch.keyHint')"
                   persistent-hint
@@ -567,8 +693,8 @@ onMounted(async () => {
                   class="mb-3"
                 />
                 <v-combobox
-                  v-if="form.config.websearch.provider === 'bocha'"
-                  v-model="form.config.websearch.bocha_key"
+                  v-if="form.websearch.provider === 'bocha'"
+                  v-model="form.websearch.bocha_key"
                   :label="tm('editor.cap.websearch.bochaKey')"
                   :hint="tm('editor.cap.websearch.keyHint')"
                   persistent-hint
@@ -580,8 +706,8 @@ onMounted(async () => {
                   class="mb-3"
                 />
                 <v-combobox
-                  v-if="form.config.websearch.provider === 'brave'"
-                  v-model="form.config.websearch.brave_key"
+                  v-if="form.websearch.provider === 'brave'"
+                  v-model="form.websearch.brave_key"
                   :label="tm('editor.cap.websearch.braveKey')"
                   :hint="tm('editor.cap.websearch.keyHint')"
                   persistent-hint
@@ -593,8 +719,8 @@ onMounted(async () => {
                   class="mb-3"
                 />
                 <v-text-field
-                  v-if="form.config.websearch.provider === 'baidu_ai_search'"
-                  v-model="form.config.websearch.baidu_key"
+                  v-if="form.websearch.provider === 'baidu_ai_search'"
+                  v-model="form.websearch.baidu_key"
                   :label="tm('editor.cap.websearch.baiduKey')"
                   density="compact"
                   variant="outlined"
@@ -610,13 +736,13 @@ onMounted(async () => {
               <div style="display: flex; align-items: center; gap: 10px">
                 <v-icon size="18">mdi-monitor</v-icon>
                 <span>{{ tm('editor.cap.computerUse.title') }}</span>
-                <v-chip v-if="form.config.computer_use.runtime !== 'none'" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+                <v-chip v-if="form.computer_use.runtime !== 'none'" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <div class="dashboard-form-grid mb-3">
                 <v-select
-                  v-model="form.config.computer_use.runtime"
+                  v-model="form.computer_use.runtime"
                   :label="tm('editor.cap.computerUse.runtime')"
                   :hint="tm('editor.cap.computerUse.runtimeHint')"
                   persistent-hint
@@ -629,7 +755,7 @@ onMounted(async () => {
                   variant="outlined"
                 />
                 <v-switch
-                  v-model="form.config.computer_use.require_admin"
+                  v-model="form.computer_use.require_admin"
                   :label="tm('editor.cap.computerUse.requireAdmin')"
                   :hint="tm('editor.cap.computerUse.requireAdminHint')"
                   persistent-hint
@@ -637,9 +763,9 @@ onMounted(async () => {
                   color="primary"
                 />
               </div>
-              <div v-if="form.config.computer_use.runtime === 'sandbox'">
+              <div v-if="form.computer_use.runtime === 'sandbox'">
                 <v-select
-                  v-model="form.config.computer_use.booter"
+                  v-model="form.computer_use.booter"
                   :label="tm('editor.cap.computerUse.booter')"
                   :items="[
                     { title: 'Shipyard Neo', value: 'shipyard_neo' },
@@ -649,9 +775,9 @@ onMounted(async () => {
                   variant="outlined"
                   class="mb-3"
                 />
-                <div v-if="form.config.computer_use.booter === 'shipyard_neo'" class="dashboard-form-grid mb-3">
+                <div v-if="form.computer_use.booter === 'shipyard_neo'" class="dashboard-form-grid mb-3">
                   <v-text-field
-                    v-model="form.config.computer_use.neo_endpoint"
+                    v-model="form.computer_use.neo_endpoint"
                     :label="tm('editor.cap.computerUse.neoEndpoint')"
                     :hint="tm('editor.cap.computerUse.neoEndpointHint')"
                     persistent-hint
@@ -659,7 +785,7 @@ onMounted(async () => {
                     variant="outlined"
                   />
                   <v-text-field
-                    v-model="form.config.computer_use.neo_token"
+                    v-model="form.computer_use.neo_token"
                     :label="tm('editor.cap.computerUse.neoToken')"
                     :hint="tm('editor.cap.computerUse.neoTokenHint')"
                     persistent-hint
@@ -668,7 +794,7 @@ onMounted(async () => {
                     type="password"
                   />
                   <v-text-field
-                    v-model="form.config.computer_use.neo_profile"
+                    v-model="form.computer_use.neo_profile"
                     :label="tm('editor.cap.computerUse.neoProfile')"
                     :hint="tm('editor.cap.computerUse.neoProfileHint')"
                     persistent-hint
@@ -676,7 +802,7 @@ onMounted(async () => {
                     variant="outlined"
                   />
                   <v-text-field
-                    v-model.number="form.config.computer_use.neo_ttl"
+                    v-model.number="form.computer_use.neo_ttl"
                     :label="tm('editor.cap.computerUse.neoTtl')"
                     :hint="tm('editor.cap.computerUse.neoTtlHint')"
                     persistent-hint
@@ -695,12 +821,12 @@ onMounted(async () => {
               <div style="display: flex; align-items: center; gap: 10px">
                 <v-icon size="18">mdi-clock-alert-outline</v-icon>
                 <span>{{ tm('editor.cap.proactive.title') }}</span>
-                <v-chip v-if="form.config.proactive.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
+                <v-chip v-if="form.proactive_capability.enabled" color="success" size="x-small" variant="tonal">{{ tm('editor.cap.enabled') }}</v-chip>
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <v-switch
-                v-model="form.config.proactive.enabled"
+                v-model="form.proactive_capability.enabled"
                 :label="tm('editor.cap.proactive.enable')"
                 :hint="tm('editor.cap.proactive.enableHint')"
                 persistent-hint
@@ -772,7 +898,7 @@ onMounted(async () => {
         <div class="dashboard-card dashboard-card--padded mb-5">
           <v-textarea
             :model-value="JSON.stringify(form.config || {}, null, 2)"
-            @update:model-value="(v: string) => { try { form.config = JSON.parse(v) } catch {} }"
+            @update:model-value="(v: string) => { try { form.config = stripCapabilityConfig(JSON.parse(v)) } catch {} }"
             variant="outlined"
             density="compact"
             rows="5"
@@ -843,7 +969,7 @@ onMounted(async () => {
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000" location="bottom right">
         {{ snackbar.text }}
       </v-snackbar>
-    </v-container>
+    </component>
   </div>
 </template>
 
