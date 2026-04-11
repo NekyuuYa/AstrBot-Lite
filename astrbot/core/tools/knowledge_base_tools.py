@@ -2,9 +2,11 @@ from pydantic import Field
 from pydantic.dataclasses import dataclass
 
 from astrbot.api import logger, sp
+from astrbot.core.aar import AgentManager
 from astrbot.core.agent.run_context import ContextWrapper
 from astrbot.core.agent.tool import FunctionTool, ToolExecResult
 from astrbot.core.astr_agent_context import AstrAgentContext
+from astrbot.core.db.po import _default_knowledgebase_config
 from astrbot.core.knowledge_base.kb_helper import KBHelper
 from astrbot.core.star.context import Context
 from astrbot.core.tools.registry import builtin_tool
@@ -25,7 +27,12 @@ async def retrieve_knowledge_base(
     """Retrieve knowledge base context for the given query."""
     kb_mgr = context.kb_manager
     config = context.get_config(umo=umo)
-
+    agent_mgr = getattr(context, "aar_agent_mgr", None)
+    agent_kb_config = None
+    if isinstance(agent_mgr, AgentManager):
+        agent = agent_mgr.resolve_agent()
+        if agent and isinstance(agent.knowledgebase, dict):
+            agent_kb_config = agent.knowledgebase
     session_config = await sp.session_get(umo, "kb_config", default={})
     if session_config and "kb_ids" in session_config:
         kb_ids = session_config.get("kb_ids", [])
@@ -52,11 +59,19 @@ async def retrieve_knowledge_base(
             return None
         logger.debug(f"[知识库] 使用会话级配置，知识库数量: {len(kb_names)}")
     else:
-        kb_names = config.get("kb_names", [])
-        top_k = config.get("kb_final_top_k", 5)
-        logger.debug(f"[知识库] 使用全局配置，知识库数量: {len(kb_names)}")
+        if agent_kb_config and agent_kb_config != _default_knowledgebase_config():
+            kb_names = agent_kb_config.get("kb_names", [])
+            top_k = agent_kb_config.get("final_top_k", 5)
+            logger.debug(f"[知识库] 使用 Agent 配置，知识库数量: {len(kb_names)}")
+        else:
+            kb_names = config.get("kb_names", [])
+            top_k = config.get("kb_final_top_k", 5)
+            logger.debug(f"[知识库] 使用全局配置，知识库数量: {len(kb_names)}")
 
-    top_k_fusion = config.get("kb_fusion_top_k", 20)
+    if agent_kb_config and agent_kb_config != _default_knowledgebase_config():
+        top_k_fusion = agent_kb_config.get("fusion_top_k", 20)
+    else:
+        top_k_fusion = config.get("kb_fusion_top_k", 20)
     if not kb_names:
         return None
 

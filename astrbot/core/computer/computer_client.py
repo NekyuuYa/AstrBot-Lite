@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 
 from astrbot.api import logger
+from astrbot.core.aar import AgentManager
 from astrbot.core.skills.skill_manager import SANDBOX_SKILLS_ROOT, SkillManager
 from astrbot.core.star.context import Context
 from astrbot.core.utils.astrbot_path import (
@@ -434,6 +435,20 @@ async def get_booter(
     config = context.get_config(umo=session_id)
 
     runtime = config.get("provider_settings", {}).get("computer_use_runtime", "local")
+    agent_mgr = getattr(context, "aar_agent_mgr", None)
+    if isinstance(agent_mgr, AgentManager):
+        agent = agent_mgr.resolve_agent()
+        agent_computer_use = getattr(agent, "computer_use", None)
+        if isinstance(agent_computer_use, dict) and agent_computer_use != {
+            "runtime": "none",
+            "require_admin": False,
+            "booter": "shipyard_neo",
+            "neo_endpoint": "",
+            "neo_token": "",
+            "neo_profile": "",
+            "neo_ttl": 600,
+        }:
+            runtime = agent_computer_use.get("runtime", runtime)
     if runtime == "local":
         return get_local_booter()
     elif runtime == "none":

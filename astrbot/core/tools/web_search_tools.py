@@ -9,8 +9,10 @@ from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from astrbot.core import logger, sp
+from astrbot.core.aar import AgentManager
 from astrbot.core.agent.tool import FunctionTool, ToolExecResult
 from astrbot.core.astr_agent_context import AstrAgentContext
+from astrbot.core.db.po import _default_websearch_config
 from astrbot.core.tools.registry import builtin_tool
 
 WEB_SEARCH_TOOL_NAMES = [
@@ -90,6 +92,39 @@ def _get_runtime(context) -> tuple[dict, dict, str]:
     event = agent_ctx.event
     cfg = agent_ctx.context.get_config(umo=event.unified_msg_origin)
     provider_settings = cfg.get("provider_settings", {})
+    agent_mgr = getattr(agent_ctx.context, "aar_agent_mgr", None)
+    if isinstance(agent_mgr, AgentManager):
+        agent = agent_mgr.resolve_agent()
+        agent_websearch = getattr(agent, "websearch", None)
+        if (
+            isinstance(agent_websearch, dict)
+            and agent_websearch != _default_websearch_config()
+        ):
+            provider_settings = {
+                **provider_settings,
+                "web_search": bool(agent_websearch.get("enabled", False)),
+                "websearch_provider": agent_websearch.get(
+                    "provider", provider_settings.get("websearch_provider", "tavily")
+                ),
+                "websearch_tavily_key": agent_websearch.get(
+                    "tavily_key", provider_settings.get("websearch_tavily_key", [])
+                ),
+                "websearch_bocha_key": agent_websearch.get(
+                    "bocha_key", provider_settings.get("websearch_bocha_key", [])
+                ),
+                "websearch_brave_key": agent_websearch.get(
+                    "brave_key", provider_settings.get("websearch_brave_key", [])
+                ),
+                "websearch_baidu_app_builder_key": agent_websearch.get(
+                    "baidu_key",
+                    provider_settings.get("websearch_baidu_app_builder_key", ""),
+                ),
+                "web_search_link": bool(
+                    agent_websearch.get(
+                        "show_link", provider_settings.get("web_search_link", False)
+                    )
+                ),
+            }
     return cfg, provider_settings, event.unified_msg_origin
 
 

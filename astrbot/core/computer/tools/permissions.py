@@ -1,5 +1,7 @@
+from astrbot.core.aar import AgentManager
 from astrbot.core.agent.run_context import ContextWrapper
 from astrbot.core.astr_agent_context import AstrAgentContext
+from astrbot.core.db.po import _default_computer_use_config
 
 
 def check_admin_permission(
@@ -9,7 +11,19 @@ def check_admin_permission(
         umo=context.context.event.unified_msg_origin
     )
     provider_settings = cfg.get("provider_settings", {})
-    require_admin = provider_settings.get("computer_use_require_admin", True)
+    agent_mgr = getattr(context.context.context, "aar_agent_mgr", None)
+    if isinstance(agent_mgr, AgentManager):
+        agent = agent_mgr.resolve_agent()
+        agent_computer_use = getattr(agent, "computer_use", None)
+        if (
+            isinstance(agent_computer_use, dict)
+            and agent_computer_use != _default_computer_use_config()
+        ):
+            require_admin = bool(agent_computer_use.get("require_admin", True))
+        else:
+            require_admin = provider_settings.get("computer_use_require_admin", True)
+    else:
+        require_admin = provider_settings.get("computer_use_require_admin", True)
     if require_admin and context.context.event.role != "admin":
         return (
             f"error: Permission denied. {operation_name} is only allowed for admin users. "
