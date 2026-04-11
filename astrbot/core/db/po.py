@@ -163,6 +163,46 @@ class Persona(TimestampMixin, SQLModel, table=True):
     )
 
 
+def _default_knowledgebase_config() -> dict:
+    return {
+        "enabled": False,
+        "kb_names": [],
+        "fusion_top_k": 3,
+        "final_top_k": 3,
+        "agentic_mode": False,
+    }
+
+
+def _default_websearch_config() -> dict:
+    return {
+        "enabled": False,
+        "provider": "tavily",
+        "tavily_key": [],
+        "bocha_key": [],
+        "brave_key": [],
+        "baidu_key": "",
+        "show_link": True,
+    }
+
+
+def _default_computer_use_config() -> dict:
+    return {
+        "runtime": "none",
+        "require_admin": False,
+        "booter": "shipyard_neo",
+        "neo_endpoint": "",
+        "neo_token": "",
+        "neo_profile": "",
+        "neo_ttl": 600,
+    }
+
+
+def _default_proactive_capability_config() -> dict:
+    return {
+        "enabled": False,
+    }
+
+
 class CronJob(TimestampMixin, SQLModel, table=True):
     """Cron job definition for scheduler and WebUI management."""
 
@@ -523,7 +563,7 @@ class PromptEntry(TimestampMixin, SQLModel, table=True):
         unique=True,
         index=True,
     )
-    """唯一字符串标识，如 'sys.safety', 'p.meme.catalog'。"""
+    """唯一字符串标识，如 'sys.safety', 'sys.default_persona'。"""
     name: str = Field(max_length=255, nullable=False)
     """易读的展示名称。"""
     category: str = Field(max_length=32, nullable=False, index=True)
@@ -586,6 +626,26 @@ class AgentConfig(TimestampMixin, SQLModel, table=True):
     """引用的上下文策略 ID。"""
     interceptors: list | None = Field(default=None, sa_type=JSON)
     """转换器/拦截器 ID 列表。"""
+    knowledgebase: dict | None = Field(
+        default_factory=_default_knowledgebase_config,
+        sa_type=JSON,
+    )
+    """知识库能力扩展配置。"""
+    websearch: dict | None = Field(
+        default_factory=_default_websearch_config,
+        sa_type=JSON,
+    )
+    """网页搜索能力扩展配置。"""
+    computer_use: dict | None = Field(
+        default_factory=_default_computer_use_config,
+        sa_type=JSON,
+    )
+    """电脑能力扩展配置。"""
+    proactive_capability: dict | None = Field(
+        default_factory=_default_proactive_capability_config,
+        sa_type=JSON,
+    )
+    """主动型能力扩展配置。"""
     config: dict | None = Field(default=None, sa_type=JSON)
     """传递给 Policy/Provider 的动态配置，如 {"window_size": 20}。"""
     tags: list | None = Field(default=None, sa_type=JSON)

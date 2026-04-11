@@ -41,6 +41,19 @@ TxResult = T.TypeVar("TxResult")
 CRON_FIELD_NOT_SET = object()
 
 
+def _strip_builtin_tools(tool_names: list[str] | None) -> list[str] | None:
+    if tool_names is None:
+        return None
+    from astrbot.core.tools.registry import get_builtin_tool_class
+
+    filtered: list[str] = []
+    for tool_name in tool_names:
+        if get_builtin_tool_class(tool_name) is not None:
+            continue
+        filtered.append(tool_name)
+    return filtered or None
+
+
 class SQLiteDatabase(BaseDatabase):
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
@@ -61,6 +74,7 @@ class SQLiteDatabase(BaseDatabase):
             # 确保 personas 表有 folder_id、sort_order 列（前向兼容）
             await self._ensure_persona_folder_columns(conn)
             await self._ensure_persona_custom_error_message_column(conn)
+            await self._ensure_agent_capability_columns(conn)
             # 确保 provider_stats 表有 cost_usd 和 prompt_metadata 列（前向兼容）
             await self._ensure_provider_stats_columns(conn)
             await conn.commit()
@@ -107,6 +121,22 @@ class SQLiteDatabase(BaseDatabase):
         if "prompt_metadata" not in columns:
             await conn.execute(
                 text("ALTER TABLE provider_stats ADD COLUMN prompt_metadata TEXT")
+            )
+
+    async def _ensure_agent_capability_columns(self, conn) -> None:
+        """Ensure agents table has dedicated capability extension columns."""
+        result = await conn.execute(text("PRAGMA table_info(agents)"))
+        columns = {row[1] for row in result.fetchall()}
+
+        if "knowledgebase" not in columns:
+            await conn.execute(text("ALTER TABLE agents ADD COLUMN knowledgebase JSON"))
+        if "websearch" not in columns:
+            await conn.execute(text("ALTER TABLE agents ADD COLUMN websearch JSON"))
+        if "computer_use" not in columns:
+            await conn.execute(text("ALTER TABLE agents ADD COLUMN computer_use JSON"))
+        if "proactive_capability" not in columns:
+            await conn.execute(
+                text("ALTER TABLE agents ADD COLUMN proactive_capability JSON")
             )
 
     # ====
@@ -1525,10 +1555,39 @@ class SQLiteDatabase(BaseDatabase):
         skills: list[str] | None = None,
         context_policy: str = "sys.batch_eviction",
         interceptors: list[str] | None = None,
+        knowledgebase: dict | None = None,
+        websearch: dict | None = None,
+        computer_use: dict | None = None,
+        proactive_capability: dict | None = None,
         config: dict | None = None,
         tags: list[str] | None = None,
     ) -> AgentConfig:
         """Create or update an agent configuration."""
+
+        def _strip_legacy_capabilities(source_config: dict | None) -> dict | None:
+            if not isinstance(source_config, dict):
+                return source_config
+            cleaned = dict(source_config)
+            cleaned.pop("knowledgebase", None)
+            cleaned.pop("websearch", None)
+            cleaned.pop("computer_use", None)
+            cleaned.pop("proactive_capability", None)
+            cleaned.pop("proactive", None)
+            return cleaned or None
+
+        if knowledgebase is None and isinstance(config, dict):
+            knowledgebase = config.get("knowledgebase")
+        if websearch is None and isinstance(config, dict):
+            websearch = config.get("websearch")
+        if computer_use is None and isinstance(config, dict):
+            computer_use = config.get("computer_use")
+        if proactive_capability is None and isinstance(config, dict):
+            proactive_capability = config.get("proactive_capability") or config.get(
+                "proactive"
+            )
+        config = _strip_legacy_capabilities(config)
+        tools = _strip_builtin_tools(tools)
+
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
@@ -1544,6 +1603,10 @@ class SQLiteDatabase(BaseDatabase):
                     existing.skills = skills
                     existing.context_policy = context_policy
                     existing.interceptors = interceptors
+                    existing.knowledgebase = knowledgebase
+                    existing.websearch = websearch
+                    existing.computer_use = computer_use
+                    existing.proactive_capability = proactive_capability
                     existing.config = config
                     existing.tags = tags
                     await session.flush()
@@ -1559,6 +1622,10 @@ class SQLiteDatabase(BaseDatabase):
                     skills=skills,
                     context_policy=context_policy,
                     interceptors=interceptors,
+                    knowledgebase=knowledgebase,
+                    websearch=websearch,
+                    computer_use=computer_use,
+                    proactive_capability=proactive_capability,
                     config=config,
                     tags=tags,
                 )

@@ -644,6 +644,10 @@ class BaseDatabase(abc.ABC):
         skills: list[str] | None = None,
         context_policy: str = "sys.batch_eviction",
         interceptors: list[str] | None = None,
+        knowledgebase: dict | None = None,
+        websearch: dict | None = None,
+        computer_use: dict | None = None,
+        proactive_capability: dict | None = None,
         config: dict | None = None,
         tags: list[str] | None = None,
     ) -> AgentConfig:

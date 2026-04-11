@@ -13,11 +13,23 @@ import logging
 
 from astrbot.core.db import BaseDatabase
 from astrbot.core.db.po import AgentConfig
+from astrbot.core.tools.registry import get_builtin_tool_class
 
 logger = logging.getLogger("astrbot.core.aar.agent_manager")
 
 # 系统兜底 Agent ID
 DEFAULT_AGENT_ID = "sys.default"
+
+
+def _strip_builtin_tools(tool_names: list[str] | None) -> list[str] | None:
+    if tool_names is None:
+        return None
+    filtered: list[str] = []
+    for tool_name in tool_names:
+        if get_builtin_tool_class(tool_name) is not None:
+            continue
+        filtered.append(tool_name)
+    return filtered or None
 
 
 class AgentManager:
@@ -33,14 +45,57 @@ class AgentManager:
     async def initialize(self) -> None:
         """从 DB 加载所有 Agent 到内存缓存，并确保系统默认 Agent 存在。"""
         agents = await self._db.get_agents()
-        self._cache = {a.agent_id: a for a in agents}
+
+        migrated_cache: dict[str, AgentConfig] = {}
+        for agent in agents:
+            config = agent.config if isinstance(agent.config, dict) else {}
+            legacy_knowledgebase = config.get("knowledgebase")
+            legacy_websearch = config.get("websearch")
+            legacy_computer_use = config.get("computer_use")
+            legacy_proactive = config.get("proactive_capability") or config.get(
+                "proactive"
+            )
+            if any(
+                value is not None
+                for value in (
+                    legacy_knowledgebase,
+                    legacy_websearch,
+                    legacy_computer_use,
+                    legacy_proactive,
+                )
+            ):
+                cleaned_config = dict(config)
+                cleaned_config.pop("knowledgebase", None)
+                cleaned_config.pop("websearch", None)
+                cleaned_config.pop("computer_use", None)
+                cleaned_config.pop("proactive_capability", None)
+                cleaned_config.pop("proactive", None)
+                agent = await self._db.upsert_agent(
+                    agent_id=agent.agent_id,
+                    name=agent.name,
+                    persona_id=agent.persona_id,
+                    prompts=agent.prompts,
+                    tools=_strip_builtin_tools(agent.tools),
+                    skills=agent.skills,
+                    context_policy=agent.context_policy,
+                    interceptors=agent.interceptors,
+                    knowledgebase=legacy_knowledgebase,
+                    websearch=legacy_websearch,
+                    computer_use=legacy_computer_use,
+                    proactive_capability=legacy_proactive,
+                    config=cleaned_config or None,
+                    tags=agent.tags,
+                )
+            migrated_cache[agent.agent_id] = agent
+
+        self._cache = migrated_cache
 
         # 确保系统默认 Agent 始终存在
         if DEFAULT_AGENT_ID not in self._cache:
             default = await self._db.upsert_agent(
                 agent_id=DEFAULT_AGENT_ID,
                 name="Default Agent",
-                prompts=["sys.safety"],
+                prompts=["sys.safety", "sys.default_persona"],
                 context_policy="sys.batch_eviction",
                 config={"window_size": 20, "evict_ratio": 0.3},
             )
@@ -64,6 +119,10 @@ class AgentManager:
         skills: list[str] | None = None,
         context_policy: str = "sys.batch_eviction",
         interceptors: list[str] | None = None,
+        knowledgebase: dict | None = None,
+        websearch: dict | None = None,
+        computer_use: dict | None = None,
+        proactive_capability: dict | None = None,
         config: dict | None = None,
         tags: list[str] | None = None,
     ) -> AgentConfig:
@@ -78,6 +137,10 @@ class AgentManager:
             skills: 白名单技能列表。
             context_policy: 上下文策略 ID。
             interceptors: 拦截器 ID 列表。
+            knowledgebase: 知识库能力扩展配置。
+            websearch: 网页搜索能力扩展配置。
+            computer_use: 电脑能力扩展配置。
+            proactive_capability: 主动型能力扩展配置。
             config: 动态配置字典。
             tags: 检索标签。
 
@@ -89,10 +152,14 @@ class AgentManager:
             name,
             persona_id=persona_id,
             prompts=prompts,
-            tools=tools,
+            tools=_strip_builtin_tools(tools),
             skills=skills,
             context_policy=context_policy,
             interceptors=interceptors,
+            knowledgebase=knowledgebase,
+            websearch=websearch,
+            computer_use=computer_use,
+            proactive_capability=proactive_capability,
             config=config,
             tags=tags,
         )

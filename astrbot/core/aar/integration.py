@@ -37,10 +37,21 @@ async def seed_system_prompts(prompt_mgr: PromptManager) -> None:
         priority=100,
         type="static",
         content=(
-            "You are a helpful and honest AI assistant. "
             "You must refuse to generate harmful, illegal, or unethical content. "
             "Always prioritize user safety."
         ),
+        source="system",
+        is_readonly=True,
+    )
+
+    # Stage 2: Identity — 默认人设
+    await prompt_mgr.register_prompt(
+        prompt_id="sys.default_persona",
+        name="Default Persona",
+        category=PromptCategory.IDENTITY,
+        priority=100,
+        type="static",
+        content="You are a helpful and honest AI assistant.",
         source="system",
         is_readonly=True,
     )
