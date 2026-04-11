@@ -194,11 +194,14 @@ class ThirdPartyAgentSubStage(Stage):
                 event,
                 self.ctx.plugin_manager.context.conversation_manager,
             )
+            agent_mgr = getattr(self.ctx.plugin_manager.context, "aar_agent_mgr", None)
+            active_agent = agent_mgr.resolve_agent() if agent_mgr else None
             return await resolve_persona_custom_error_message(
                 event=event,
                 persona_manager=self.ctx.plugin_manager.context.persona_manager,
                 provider_settings=self.conf["provider_settings"],
                 conversation_persona_id=conversation_persona_id,
+                agent_persona_id=active_agent.persona_id if active_agent else None,
             )
         except Exception as e:
             logger.debug("Failed to resolve persona custom error message: %s", e)

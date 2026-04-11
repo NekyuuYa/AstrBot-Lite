@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from astrbot.core.aar.agent_manager import AgentManager
-from astrbot.core.aar.context_policy import ContextPolicyRegistry, ContextPolicyResult
+from astrbot.core.aar.context_policy import ContextPolicyRegistry
 from astrbot.core.aar.prompt_manager import PromptManager
 from astrbot.core.db.po import AgentConfig, PromptCategory, PromptEntry
 

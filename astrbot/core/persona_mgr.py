@@ -79,8 +79,16 @@ class PersonaManager:
         conversation_persona_id: str | None,
         platform_name: str,
         provider_settings: dict | None = None,
+        agent_persona_id: str | None = None,
     ) -> tuple[str | None, Personality | None, str | None, bool]:
         """解析当前会话最终生效的人格。
+
+        Args:
+            umo: 统一的消息来源。
+            conversation_persona_id: 会话关联的人格 ID。
+            platform_name: 平台名称。
+            provider_settings: 提供商设置。
+            agent_persona_id: Agent 指定的人格 ID。若提供，则具有最高优先级。
 
         Returns:
             tuple:
@@ -89,6 +97,14 @@ class PersonaManager:
                 - force applied persona_id from session rule
                 - whether use webchat special default persona
         """
+        if agent_persona_id:
+            persona = next(
+                (item for item in self.personas_v3 if item["name"] == agent_persona_id),
+                None,
+            )
+            if persona:
+                return (agent_persona_id, persona, None, False)
+
         session_service_config = (
             await sp.get_async(
                 scope="umo",
