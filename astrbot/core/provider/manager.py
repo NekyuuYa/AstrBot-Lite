@@ -6,6 +6,21 @@ from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
 from astrbot.core import astrbot_config, logger, sp
+from astrbot.core.astrbot_config_mgr import AstrBotConfigManager
+from astrbot.core.db import BaseDatabase
+from astrbot.core.utils.error_redaction import safe_error
+
+from ..persona_mgr import PersonaManager
+from .entities import ProviderType
+from .provider import (
+    EmbeddingProvider,
+    Provider,
+    Providers,
+    RerankProvider,
+    STTProvider,
+    TTSProvider,
+)
+from .register import llm_tools, provider_cls_map
 
 # Legacy chat_completion adapter types that are redirected to ProviderLiteLLM.
 # The original type is preserved in config["_litellm_original_type"] so that
@@ -23,21 +38,6 @@ _LITELLM_REDIRECT_TYPES: frozenset[str] = frozenset(
         "kimi_code_chat_completion",
     }
 )
-from astrbot.core.astrbot_config_mgr import AstrBotConfigManager
-from astrbot.core.db import BaseDatabase
-from astrbot.core.utils.error_redaction import safe_error
-
-from ..persona_mgr import PersonaManager
-from .entities import ProviderType
-from .provider import (
-    EmbeddingProvider,
-    Provider,
-    Providers,
-    RerankProvider,
-    STTProvider,
-    TTSProvider,
-)
-from .register import llm_tools, provider_cls_map
 
 
 @runtime_checkable
@@ -696,8 +696,9 @@ class ProviderManager:
 
                     # Inject manager reference *before* initialize() so that
                     # ProviderRouter can resolve member providers on first init.
-                    if hasattr(inst, "set_manager"):
-                        inst.set_manager(self)
+                    set_manager = getattr(inst, "set_manager", None)
+                    if callable(set_manager):
+                        set_manager(self)
 
                     if isinstance(inst, HasInitialize):
                         await inst.initialize()

@@ -9,6 +9,7 @@ import platform
 import zoneinfo
 from collections.abc import Coroutine
 from dataclasses import dataclass, field
+from typing import cast
 
 from astrbot.core import logger
 from astrbot.core.aar.agent_manager import AgentManager
@@ -51,6 +52,12 @@ from astrbot.core.astr_main_agent_resources import (
     TOOL_CALL_PROMPT_SKILLS_LIKE_MODE,
 )
 from astrbot.core.conversation_mgr import Conversation
+from astrbot.core.db.po import (
+    _default_computer_use_config,
+    _default_knowledgebase_config,
+    _default_proactive_capability_config,
+    _default_websearch_config,
+)
 from astrbot.core.message.components import File, Image, Record, Reply
 from astrbot.core.persona_error_reply import (
     extract_persona_custom_error_message_from_persona,
@@ -162,6 +169,12 @@ class MainAgentBuildResult:
     reset_coro: Coroutine | None = None
 
 
+def _effective_agent_capability(value: dict | None, default_value: dict) -> dict | None:
+    if isinstance(value, dict) and value != default_value:
+        return value
+    return None
+
+
 def _select_provider(
     event: AstrMessageEvent, plugin_context: Context
 ) -> Provider | None:
@@ -206,8 +219,19 @@ async def _apply_kb(
     req: ProviderRequest,
     plugin_context: Context,
     config: MainAgentBuildConfig,
+    agent_kb_config: dict | None = None,
 ) -> None:
-    if not config.kb_agentic_mode:
+    effective_agent_kb = _effective_agent_capability(
+        agent_kb_config,
+        _default_knowledgebase_config(),
+    )
+    kb_agentic_mode = (
+        bool(effective_agent_kb.get("agentic_mode", False))
+        if effective_agent_kb is not None
+        else config.kb_agentic_mode
+    )
+
+    if not kb_agentic_mode:
         if req.prompt is None:
             return
         try:
@@ -326,6 +350,7 @@ async def _aar_assemble_prompt(
     prompt_mgr: PromptManager,
     agent_mgr: AgentManager,
     ctx_policy: ContextPolicyRegistry,
+    agent_id: str | None = None,
 ) -> None:
     """AAR-based prompt assembly: uses PipelineOrchestrator for 7-stage system prompt.
 
@@ -416,7 +441,7 @@ async def _aar_assemble_prompt(
     # Run the 7-stage assembly
     orchestrator = PipelineOrchestrator(prompt_mgr, agent_mgr, ctx_policy)
     assembly_ctx = await orchestrator.assemble_request(
-        agent_id=None,  # Use default agent
+        agent_id=agent_id,
         raw_messages=[],  # Context policy handled externally by existing pipeline
     )
 
@@ -444,6 +469,11 @@ async def _ensure_persona_and_skills(
     if not req.conversation:
         return
 
+    aar_agent_mgr: AgentManager | None = getattr(
+        plugin_context, "aar_agent_mgr", None
+    )
+    active_agent = aar_agent_mgr.resolve_agent() if aar_agent_mgr else None
+
     (
         persona_id,
         persona,
@@ -454,6 +484,7 @@ async def _ensure_persona_and_skills(
         conversation_persona_id=req.conversation.persona_id,
         platform_name=event.get_platform_name(),
         provider_settings=cfg,
+        agent_persona_id=active_agent.persona_id if active_agent else None,
     )
 
     set_persona_custom_error_message_on_event(
@@ -461,31 +492,37 @@ async def _ensure_persona_and_skills(
     )
 
     # --- Prompt Assembly via AAR 7-stage pipeline ---
-    aar_prompt_mgr: PromptManager = getattr(plugin_context, "aar_prompt_mgr", None)
-    aar_agent_mgr: AgentManager = getattr(plugin_context, "aar_agent_mgr", None)
-    aar_ctx_policy: ContextPolicyRegistry = getattr(
+    aar_prompt_mgr: PromptManager | None = getattr(
+        plugin_context, "aar_prompt_mgr", None
+    )
+    aar_ctx_policy: ContextPolicyRegistry | None = getattr(
         plugin_context, "aar_ctx_policy", None
     )
 
-    if aar_prompt_mgr is not None:
+    if (
+        aar_prompt_mgr is not None
+        and aar_agent_mgr is not None
+        and aar_ctx_policy is not None
+    ):
         await _aar_assemble_prompt(
             req,
             cfg,
             plugin_context,
-            persona,
+            cast(dict | None, persona),
             persona_id,
             use_webchat_special_default,
             aar_prompt_mgr,
             aar_agent_mgr,
             aar_ctx_policy,
+            agent_id=active_agent.agent_id if active_agent else None,
         )
 
     tmgr = plugin_context.get_llm_tool_manager()
 
     # inject toolset: use AgentConfig.tools whitelist, falling back to all active tools
     agent_tools: list | None = None
-    if aar_agent_mgr is not None:
-        agent_tools = aar_agent_mgr.resolve_agent().tools
+    if active_agent:
+        agent_tools = active_agent.tools
 
     if agent_tools is None:
         # None means "use all active tools"
@@ -1183,10 +1220,47 @@ async def _apply_web_search_tools(
     event: AstrMessageEvent,
     req: ProviderRequest,
     plugin_context: Context,
+    agent_websearch_config: dict | None = None,
 ) -> None:
     cfg = plugin_context.get_config(umo=event.unified_msg_origin)
     normalize_legacy_web_search_config(cfg)
     prov_settings = cfg.get("provider_settings", {})
+
+    effective_agent_websearch = _effective_agent_capability(
+        agent_websearch_config,
+        _default_websearch_config(),
+    )
+    if effective_agent_websearch is not None:
+        prov_settings = {
+            **prov_settings,
+            "web_search": bool(effective_agent_websearch.get("enabled", False)),
+            "websearch_provider": effective_agent_websearch.get(
+                "provider",
+                prov_settings.get("websearch_provider", "tavily"),
+            ),
+            "websearch_tavily_key": effective_agent_websearch.get(
+                "tavily_key",
+                prov_settings.get("websearch_tavily_key", []),
+            ),
+            "websearch_bocha_key": effective_agent_websearch.get(
+                "bocha_key",
+                prov_settings.get("websearch_bocha_key", []),
+            ),
+            "websearch_brave_key": effective_agent_websearch.get(
+                "brave_key",
+                prov_settings.get("websearch_brave_key", []),
+            ),
+            "websearch_baidu_app_builder_key": effective_agent_websearch.get(
+                "baidu_key",
+                prov_settings.get("websearch_baidu_app_builder_key", ""),
+            ),
+            "web_search_link": bool(
+                effective_agent_websearch.get(
+                    "show_link",
+                    prov_settings.get("web_search_link", False),
+                )
+            ),
+        }
 
     if not prov_settings.get("web_search", False):
         return
@@ -1441,22 +1515,77 @@ async def build_main_agent(
 
     await _decorate_llm_request(event, req, plugin_context, config)
 
-    await _apply_kb(event, req, plugin_context, config)
+    aar_agent_mgr: AgentManager | None = getattr(plugin_context, "aar_agent_mgr", None)
+    active_agent = aar_agent_mgr.resolve_agent() if aar_agent_mgr is not None else None
+    active_agent_kb = (
+        getattr(active_agent, "knowledgebase", None)
+        if active_agent is not None
+        else None
+    )
+    active_agent_websearch = (
+        getattr(active_agent, "websearch", None) if active_agent is not None else None
+    )
+    active_agent_computer_use = (
+        getattr(active_agent, "computer_use", None)
+        if active_agent is not None
+        else None
+    )
+    active_agent_proactive = (
+        getattr(active_agent, "proactive_capability", None)
+        if active_agent is not None
+        else None
+    )
+
+    await _apply_kb(event, req, plugin_context, config, active_agent_kb)
 
     if not req.session_id:
         req.session_id = event.unified_msg_origin
 
     _modalities_fix(provider, req)
     _plugin_tool_fix(event, req)
-    await _apply_web_search_tools(event, req, plugin_context)
+    await _apply_web_search_tools(event, req, plugin_context, active_agent_websearch)
     _sanitize_context_by_modalities(config, provider, req)
 
     if config.llm_safety_mode:
         _apply_llm_safety_mode(config, req)
 
-    if config.computer_use_runtime == "sandbox":
-        _apply_sandbox_tools(config, req, req.session_id)
-    elif config.computer_use_runtime == "local":
+    effective_computer_use_runtime = config.computer_use_runtime
+    effective_sandbox_cfg = config.sandbox_cfg
+    agent_computer_use = _effective_agent_capability(
+        active_agent_computer_use,
+        _default_computer_use_config(),
+    )
+    if agent_computer_use is not None:
+        effective_computer_use_runtime = agent_computer_use.get(
+            "runtime",
+            effective_computer_use_runtime,
+        )
+        effective_sandbox_cfg = dict(effective_sandbox_cfg)
+        if agent_computer_use.get("booter"):
+            effective_sandbox_cfg["booter"] = agent_computer_use.get("booter")
+        if agent_computer_use.get("neo_endpoint"):
+            effective_sandbox_cfg["shipyard_neo_endpoint"] = agent_computer_use.get(
+                "neo_endpoint"
+            )
+        if agent_computer_use.get("neo_token"):
+            effective_sandbox_cfg["shipyard_neo_access_token"] = agent_computer_use.get(
+                "neo_token"
+            )
+        if agent_computer_use.get("neo_profile"):
+            effective_sandbox_cfg["shipyard_neo_profile"] = agent_computer_use.get(
+                "neo_profile"
+            )
+        if agent_computer_use.get("neo_ttl") is not None:
+            effective_sandbox_cfg["shipyard_neo_ttl"] = agent_computer_use.get(
+                "neo_ttl"
+            )
+
+    if effective_computer_use_runtime == "sandbox":
+        runtime_config = copy.copy(config)
+        runtime_config.computer_use_runtime = "sandbox"
+        runtime_config.sandbox_cfg = effective_sandbox_cfg
+        _apply_sandbox_tools(runtime_config, req, req.session_id)
+    elif effective_computer_use_runtime == "local":
         _apply_local_env_tools(req)
 
     agent_runner = AgentRunner()
@@ -1465,7 +1594,13 @@ async def build_main_agent(
         event=event,
     )
 
-    if config.add_cron_tools:
+    agent_proactive = _effective_agent_capability(
+        active_agent_proactive,
+        _default_proactive_capability_config(),
+    )
+    if (agent_proactive is not None and agent_proactive.get("enabled", False)) or (
+        agent_proactive is None and config.add_cron_tools
+    ):
         _proactive_cron_job_tools(req, plugin_context)
 
     if event.platform_meta.support_proactive_message:
